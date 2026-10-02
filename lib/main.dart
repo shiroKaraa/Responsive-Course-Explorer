@@ -804,6 +804,18 @@ class HardcodedDemoPage extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            tooltip: 'Buka Flex Demo',
+            icon: const Icon(Icons.view_column),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FlexDemoPage(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       backgroundColor: AppColors.bg,
@@ -903,7 +915,7 @@ class HardcodedDemoPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 const Text(
                   'Tekan ikon grid di kanan atas untuk membuka halaman '
-                  'Breakpoint Demo (Tahap 3).',
+                  'Breakpoint Demo, dan ikon kolom untuk membuka Flex Demo.',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.primary,
@@ -1113,6 +1125,207 @@ class BreakpointDemoPage extends StatelessWidget {
   }
 }
 
+class FlexDemoPage extends StatelessWidget {
+  const FlexDemoPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Worksheet Pertemuan 5'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      backgroundColor: AppColors.bg,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Identitas
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    studentName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'NIM: $studentId',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            sectionTitle('A. Expanded dengan Flex 2:1'),
+            const SizedBox(height: 4),
+            const Text(
+              'Dua panel dalam Row dengan flex 2 dan 1. '
+              'Panel kiri mendapat 2/3 ruang, panel kanan 1/3.',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Panel A (flex: 2)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Panel B\n(flex: 1)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            sectionTitle('B. Wrap dengan Chip Skill'),
+            const SizedBox(height: 4),
+            const Text(
+              'Wrap memindahkan item ke baris berikutnya jika ruang tidak cukup. ',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const [
+                Chip(
+                  avatar: Icon(Icons.code, size: 16),
+                  label: Text('Flutter'),
+                ),
+                Chip(
+                  avatar: Icon(Icons.storage, size: 16),
+                  label: Text('Dart'),
+                ),
+                Chip(
+                  avatar: Icon(Icons.cloud, size: 16),
+                  label: Text('REST API'),
+                ),
+                Chip(
+                  avatar: Icon(Icons.palette, size: 16),
+                  label: Text('UI Design'),
+                ),
+                Chip(
+                  avatar: Icon(Icons.storage_outlined, size: 16),
+                  label: Text('Database'),
+                ),
+                Chip(
+                  avatar: Icon(Icons.account_tree, size: 16),
+                  label: Text('State Management'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            sectionTitle('C. Perbandingan: Row Biasa (Overflow)'),
+            const SizedBox(height: 4),
+            const Text(
+              'Row di bawah ini berisi banyak item dengan lebar tetap. '
+              'Jika layar sempit, akan muncul overflow (garis kuning-hitam).',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.warn.withValues(alpha: 0.4)),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: const [
+                    _BoxItem('Item 1'),
+                    SizedBox(width: 6),
+                    _BoxItem('Item 2'),
+                    SizedBox(width: 6),
+                    _BoxItem('Item 3'),
+                    SizedBox(width: 6),
+                    _BoxItem('Item 4'),
+                    SizedBox(width: 6),
+                    _BoxItem('Item 5'),
+                    SizedBox(width: 6),
+                    _BoxItem('Item 6'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BoxItem extends StatelessWidget {
+  final String label;
+  const _BoxItem(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 90,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.warn.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.warn),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -1129,7 +1342,7 @@ class MyApp extends StatelessWidget {
           primary: AppColors.primary,
         ),
       ),
-      home: const BreakpointDemoPage(),
+      home: const FlexDemoPage(),
     );
   }
 }
