@@ -269,6 +269,7 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
       ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage(standalone: true)),
       ('Tahap 12', 'Interaction Demo', Icons.touch_app, const InteractionDemoPage()),
+      ('Tahap 13', 'Form & Validation', Icons.edit_note, const FeedbackFormPage()),
     ];
 
     return ListView(
@@ -484,6 +485,296 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 13: FORM & VALIDATION =====
+
+class FeedbackFormPage extends StatefulWidget {
+  const FeedbackFormPage({super.key});
+
+  @override
+  State<FeedbackFormPage> createState() => _FeedbackFormPageState();
+}
+
+class _FeedbackFormPageState extends State<FeedbackFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _nimController = TextEditingController();
+  final _commentController = TextEditingController();
+
+  bool _submitted = false;
+  bool _autoValidate = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nimController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nama wajib diisi';
+    }
+    if (value.trim().length < 3) {
+      return 'Nama minimal 3 karakter';
+    }
+    return null;
+  }
+
+  String? _validateNim(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'NIM wajib diisi';
+    }
+    if (value.trim().length < 5) {
+      return 'NIM minimal 5 karakter';
+    }
+    if (int.tryParse(value.trim()) == null) {
+      return 'NIM hanya boleh berisi angka';
+    }
+    return null;
+  }
+
+  String? _validateComment(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Komentar wajib diisi';
+    }
+    if (value.trim().length < 5) {
+      return 'Komentar minimal 5 karakter';
+    }
+    return null;
+  }
+
+  void _submit() {
+    setState(() {
+      _autoValidate = true;
+      _submitted = true;
+    });
+
+    if (_formKey.currentState!.validate()) {
+      FocusScope.of(context).unfocus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Terima kasih, ${_nameController.text.trim()}! Feedback Anda sudah terkirim.'),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mohon periksa kembali field yang bertanda merah.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _reset() {
+    _formKey.currentState?.reset();
+    _nameController.clear();
+    _nimController.clear();
+    _commentController.clear();
+    setState(() {
+      _submitted = false;
+      _autoValidate = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DemoScaffold(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          16, 12, 16,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Form(
+          key: _formKey,
+          autovalidateMode: _autoValidate
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const IdentityCard(),
+              const SizedBox(height: 16),
+
+              sectionTitle('Form Feedback'),
+              const SizedBox(height: 4),
+              hint(
+                'Semua field wajib diisi. Nama minimal 3 karakter, NIM '
+                'hanya angka, dan komentar minimal 5 karakter.',
+              ),
+              const SizedBox(height: 12),
+
+              AppCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama Lengkap',
+                        hintText: studentName,
+                        isDense: true,
+                        prefixIcon: Icon(Icons.person_outline, size: 20),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _validateName,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _nimController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'NIM',
+                        hintText: studentId,
+                        isDense: true,
+                        prefixIcon: Icon(Icons.badge_outlined, size: 20),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _validateNim,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _commentController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Komentar',
+                        hintText: 'Tulis feedback Anda (min. 5 karakter)',
+                        alignLabelWithHint: true,
+                        isDense: true,
+                        prefixIcon: Icon(Icons.description_outlined, size: 20),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _validateComment,
+                      textInputAction: TextInputAction.newline,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _reset,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Reset'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: _submit,
+                      icon: const Icon(Icons.send, size: 18),
+                      label: const Text('Kirim Feedback'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_submitted) ...[
+                const SizedBox(height: 16),
+                AppCard(
+                  padding: const EdgeInsets.all(14),
+                  borderColor: AppColors.success.withValues(alpha: 0.4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              color: AppColors.success, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Data Terkirim',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _previewRow('Nama', _nameController.text),
+                      _previewRow('NIM', _nimController.text),
+                      _previewRow('Komentar', _commentController.text),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              AppCard(
+                borderColor: AppColors.primary.withValues(alpha: 0.3),
+                child: hint(
+                  'Form + GlobalKey<FormState> dipakai untuk memvalidasi '
+                  'semua field sekaligus dengan _formKey.currentState!.validate(). '
+                  'Setiap TextFormField punya validator sendiri.',
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _previewRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ===== TAHAP 12: INTERACTION DEMO =====
 
 class InteractionDemoPage extends StatefulWidget {
   const InteractionDemoPage({super.key});
@@ -797,6 +1088,8 @@ class _RuleRow extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 7: DETAIL PAGE =====
 
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});

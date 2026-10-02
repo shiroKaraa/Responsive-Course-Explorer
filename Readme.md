@@ -53,3 +53,7 @@ Pada tahap ini saya mencoba membuat navigasi yang dapat menyesuaikan ukuran laya
 Tahap 12 : Button, InkWell, dan GestureDetector
 
 Pada tahap ini saya mencoba beberapa cara untuk menangani interaksi pengguna, yaitu InkWell, GestureDetector, dan beberapa button Material. Saya melihat bahwa InkWell memiliki efek ripple ketika ditekan, sedangkan GestureDetector hanya mendeteksi gesture tanpa efek tersebut. Saya juga mencoba ElevatedButton, OutlinedButton, dan TextButton yang memiliki tampilan berbeda sesuai penggunaannya. Setiap tombol saya beri SnackBar sebagai feedback setelah ditekan. Dari percobaan ini saya memahami bahwa setiap widget memiliki fungsi interaksi yang berbeda dan setState dapat digunakan ketika interaksi tersebut perlu mengubah tampilan.
+
+Tahap 13 : Form Input dan Validasi
+
+Pada tahap ini saya mencoba membuat form feedback dengan beberapa TextFormField dan menambahkan validasi pada setiap field. Saya mengatur agar pesan error baru muncul setelah tombol Submit ditekan, sehingga sebelum melakukan submit tampilan form tetap lebih bersih. Setelah ada field yang diperbaiki, pesan error akan hilang secara otomatis. Saya juga mencoba validate() untuk memeriksa semua field sekaligus. Jika masih ada field yang salah, data tidak diproses dan muncul SnackBar sebagai pemberitahuan. Setelah semua field valid, data yang dimasukkan dapat ditampilkan sebagai preview. Dari percobaan ini saya memahami bahwa validasi form penting untuk memastikan data yang diproses sudah sesuai.
