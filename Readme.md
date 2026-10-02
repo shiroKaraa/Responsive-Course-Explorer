@@ -190,3 +190,29 @@ Pada Kasus D, menekan tombol beberapa kali dapat menyebabkan Navigator.push() di
 
 Dari tahap ini saya memahami bahwa banyak masalah layout Flutter berkaitan dengan constraint, yaitu bagaimana ukuran diberikan dari parent ke child. Sedangkan untuk mencegah aksi yang dilakukan berkali-kali, diperlukan pengaturan state agar proses hanya dapat berjalan satu kali pada waktu yang sama.
 
+Tahap 17 : Checkpoint Git dan Pengumpulan
+
+Saya menginisialisasi repository GitHub sejak Tahap 1 dan melakukan commit + push setiap tahap, sehingga riwayat Git tersusun rapi dari Tahap 1 hingga Tahap 17 (17 commit) dengan pesan bermakna yang mencerminkan progres praktikum. Commit terakhir 313ba72 di branch main menjadi checkpoint final praktikum.
+
+echo "2415051068 - I Kadek Dwi Bajaskara"
+2415051068 - I Kadek Dwi Bajaskara
+
+**Responsive Course Explorer**
+Worksheet Pertemuan 5 — Responsive Layout, Navigation & User Interaction.
+
+**Nama:** I Kadek Dwi Bajaskara  
+**NIM:** 2415051068  
+**Kelas:** PTI 5A  
+**Tanggal:** 29 September 2026
+
+## Fitur
+- Responsive layout (MediaQuery, LayoutBuilder, breakpoint)
+- Navigation (push/pop, passing data, adaptive shell)
+- User interaction (InkWell, GestureDetector, Form, SnackBar, Dialog, Loading)
+- Mini Project Integrasi: Responsive Course Explorer
+- Debugging Challenge (4 kasus)
+
+## Cara Jalankan
+```bash
+flutter pub get
+flutter run
