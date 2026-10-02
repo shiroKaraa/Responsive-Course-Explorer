@@ -791,6 +791,20 @@ class HardcodedDemoPage extends StatelessWidget {
         title: const Text('Worksheet Pertemuan 5'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Buka Breakpoint Demo',
+            icon: const Icon(Icons.grid_view),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BreakpointDemoPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       backgroundColor: AppColors.bg,
       body: Center(
@@ -860,7 +874,6 @@ class HardcodedDemoPage extends StatelessWidget {
 
                 const Divider(height: 32),
 
-                // Identitas mahasiswa
                 Text(
                   studentName,
                   style: const TextStyle(
@@ -887,10 +900,214 @@ class HardcodedDemoPage extends StatelessWidget {
                     fontStyle: FontStyle.italic,
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Tekan ikon grid di kanan atas untuk membuka halaman '
+                  'Breakpoint Demo (Tahap 3).',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ===== WIDGET LAYOUT UNTUK BREAKPOINT DEMO =====
+
+class CompactLayout extends StatelessWidget {
+  const CompactLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AppCard(
+          padding: const EdgeInsets.all(20),
+          borderColor: AppColors.warn.withValues(alpha: 0.4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.phone_android,
+                  size: 48, color: AppColors.warn),
+              const SizedBox(height: 12),
+              const Text(
+                'Compact Layout',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.warn,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Lebar < 600 px',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const Divider(height: 24),
+              Text(
+                studentName,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'NIM: $studentId',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MediumLayout extends StatelessWidget {
+  const MediumLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AppCard(
+          padding: const EdgeInsets.all(20),
+          borderColor: AppColors.primary.withValues(alpha: 0.4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.tablet_android,
+                  size: 56, color: AppColors.primary),
+              const SizedBox(height: 12),
+              const Text(
+                'Medium Layout',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Lebar 600 - 839 px',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const Divider(height: 24),
+              Text(
+                studentName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'NIM: $studentId',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ExpandedLayout extends StatelessWidget {
+  const ExpandedLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AppCard(
+          padding: const EdgeInsets.all(24),
+          borderColor: AppColors.success.withValues(alpha: 0.4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.desktop_windows,
+                  size: 64, color: AppColors.success),
+              const SizedBox(height: 12),
+              const Text(
+                'Expanded Layout',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Lebar ≥ 840 px',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const Divider(height: 24),
+              Text(
+                studentName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'NIM: $studentId',
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BreakpointDemoPage extends StatelessWidget {
+  const BreakpointDemoPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Worksheet Pertemuan 5'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      backgroundColor: AppColors.bg,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 600) {
+            return const CompactLayout();
+          } else if (constraints.maxWidth < 840) {
+            return const MediumLayout();
+          } else {
+            return const ExpandedLayout();
+          }
+        },
       ),
     );
   }
@@ -912,7 +1129,7 @@ class MyApp extends StatelessWidget {
           primary: AppColors.primary,
         ),
       ),
-      home: const HardcodedDemoPage(),
+      home: const BreakpointDemoPage(),
     );
   }
 }
