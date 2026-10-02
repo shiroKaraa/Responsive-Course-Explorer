@@ -9,9 +9,9 @@ const String studentId = '2415051068';
 const String appTitle = 'Responsive Course Explorer';
 
 class AppColors {
-  static const primary = Color(0xFF1565C0); // biru kampus — dominan
+  static const primary = Color(0xFF1565C0); 
   static const primarySoft = Color(0xFFE3F0FC);
-  static const success = Color(0xFF2E7D32); // hijau — aksen
+  static const success = Color(0xFF2E7D32); 
   static const successSoft = Color(0xFFE6F4EA);
   static const warn = Color(0xFFEF6C00);
   static const muted = Color(0xFF607D8B);
@@ -267,8 +267,6 @@ Widget ruleCard(List<RuleRow> rows) => AppCard(
       ]),
     );
 
-// ===== TAHAP 15: MINI QUIZ (dari Tahap 6.5, dengan skor global) =====
-
 class MiniQuizCard extends StatefulWidget {
   const MiniQuizCard({super.key});
 
@@ -469,8 +467,6 @@ class _MiniQuizCardState extends State<MiniQuizCard> {
   }
 }
 
-// ===== TAHAP 15: FAVORITE SECTION (Home) =====
-
 class FavoriteSectionCard extends StatelessWidget {
   const FavoriteSectionCard({super.key});
 
@@ -569,8 +565,6 @@ class FavoriteSectionCard extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 10 & 11: MAIN SHELL (NavigationBar <-> NavigationRail) =====
-
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
 
@@ -659,6 +653,7 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 12', 'Interaction Demo', Icons.touch_app, const InteractionDemoPage()),
       ('Tahap 13', 'Form & Validation', Icons.edit_note, const FeedbackFormPage()),
       ('Tahap 14', 'Feedback Demo', Icons.notifications_active, const FeedbackDemoPage()),
+      ('Tahap 16', 'Debugging Challenge', Icons.bug_report, const DebugChallengePage()),
     ];
 
     return ListView(
@@ -689,8 +684,6 @@ class _HomeTabPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 15: TAB PROFILE (diperluas) =====
 
 class _StatTile extends StatelessWidget {
   final IconData icon;
@@ -723,8 +716,6 @@ class _ProfileTabPage extends StatelessWidget {
   Widget build(BuildContext context) => ScrollPage([
         const IdentityCard(subtitle: 'Pendidikan Teknik Informatika • Semester 5'),
         const SizedBox(height: 16),
-
-        // Stats: Topik / Favorite / Quiz Score
         ValueListenableBuilder<Set<String>>(
           valueListenable: favorites,
           builder: (_, favs, __) => Row(children: [
@@ -792,8 +783,6 @@ class _ProfileTabPage extends StatelessWidget {
       ]);
 }
 
-// ===== TAHAP 1 =====
-
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
 
@@ -837,8 +826,6 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
     );
   }
 }
-
-// ===== TAHAP 2 =====
 
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
@@ -894,8 +881,6 @@ class MediaQueryPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 3 =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -964,8 +949,6 @@ class BreakpointDemoPage extends StatelessWidget {
         }),
       );
 }
-
-// ===== TAHAP 4 =====
 
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
@@ -1047,8 +1030,6 @@ class FlexDemoPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 5, 8 & 9: GRID, DETAIL, FAVORITE =====
 
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
@@ -1382,7 +1363,6 @@ class CourseDetailPage extends StatelessWidget {
               StatusHelper.badge(status),
             ]),
             const SizedBox(height: 14),
-            // Progress bar (Tahap 15): hijau, sesuai aksen.
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
@@ -1431,8 +1411,6 @@ class CourseDetailPage extends StatelessWidget {
         const SizedBox(height: 8),
         const IdentityCard(),
         const SizedBox(height: 16),
-
-        // Tombol Salin Kode Course
         OutlinedButton.icon(
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: code));
@@ -1445,8 +1423,6 @@ class CourseDetailPage extends StatelessWidget {
           style: outlined(AppColors.primary),
         ),
         const SizedBox(height: 10),
-
-        // Favorite toggle & pop
         ElevatedButton.icon(
           onPressed: () => Navigator.pop(context, !isFavorite),
           icon: Icon(isFavorite ? Icons.star_border : Icons.star, size: 18),
@@ -1466,8 +1442,6 @@ class CourseDetailPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 6 =====
 
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});
@@ -1556,8 +1530,6 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
   }
 }
 
-// ===== TAHAP 7 =====
-
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
 
@@ -1603,8 +1575,6 @@ class DetailPage extends StatelessWidget {
         ]),
       );
 }
-
-// ===== TAHAP 12 =====
 
 class InteractionDemoPage extends StatefulWidget {
   const InteractionDemoPage({super.key});
@@ -1750,8 +1720,6 @@ class _InteractionDemoPageState extends State<InteractionDemoPage> {
     );
   }
 }
-
-// ===== TAHAP 13 =====
 
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});
@@ -1937,7 +1905,7 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
       );
 }
 
-// ===== TAHAP 14 =====
+
 
 class FeedbackDemoPage extends StatefulWidget {
   const FeedbackDemoPage({super.key});
@@ -2083,6 +2051,340 @@ class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
             RuleRow(Icons.hourglass_top, AppColors.primary, 'Loading Indicator',
                 'Operasi yang butuh waktu. Contoh: "Memuat data...".'),
           ]),
+        ]),
+      );
+}
+
+
+// DEBUGGING CHALLENGE
+List<Widget> _bugActions(bool bug, ValueChanged<bool> onChanged) => [
+      Text(bug ? 'BUG' : 'FIXED',
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+      Switch(
+        value: bug,
+        activeThumbColor: Colors.white,
+        activeTrackColor: AppColors.warn,
+        onChanged: onChanged,
+      ),
+    ];
+
+class DebugChallengePage extends StatelessWidget {
+  const DebugChallengePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cases = <(String, String, IconData, Widget)>[
+      ('Kasus A', 'RenderFlex overflow: Row + teks panjang',
+          Icons.view_column, const DebugCaseAPage()),
+      ('Kasus B', 'ListView di dalam Column (unbounded height)',
+          Icons.view_list, const DebugCaseBPage()),
+      ('Kasus C', 'Keyboard overflow pada form di bawah layar',
+          Icons.keyboard, const DebugCaseCPage()),
+      ('Kasus D', 'Navigasi ganda (double push)',
+          Icons.double_arrow, const DebugCaseDPage()),
+    ];
+
+    return DemoScaffold(
+      body: ScrollPage([
+        const IdentityCard(),
+        const SizedBox(height: 16),
+        sectionTitle('Debugging Challenge'),
+        const SizedBox(height: 4),
+        hint('Tiap kasus punya switch BUG/FIXED di AppBar untuk '
+            'membandingkan error dan perbaikannya.'),
+        const SizedBox(height: 12),
+        for (final c in cases)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(c.$3, color: AppColors.warn),
+                title: Text('${c.$1}: ${c.$2}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => go(context, c.$4),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+
+// KASUS A: RenderFlex overflow pada Row dengan teks panjang
+class DebugCaseAPage extends StatefulWidget {
+  const DebugCaseAPage({super.key});
+
+  @override
+  State<DebugCaseAPage> createState() => _DebugCaseAPageState();
+}
+
+class _DebugCaseAPageState extends State<DebugCaseAPage> {
+  bool _bug = true;
+
+  @override
+  Widget build(BuildContext context) {
+    const longText = '$studentId - $studentName - teks sangat panjang yang '
+        'tidak akan muat dalam satu baris pada layar kecil sehingga harus '
+        'dibungkus ke baris berikutnya';
+
+    // BUG: Text di dalam Row mendapat lebar tak terbatas -> overflow.
+    final buggy = Row(children: const [
+      Icon(Icons.info, color: AppColors.primary),
+      SizedBox(width: 8),
+      Text(longText),
+    ]);
+
+    // FIXED: Expanded membatasi lebar Text = sisa ruang Row, lalu teks wrap.
+    final fixed = Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+      Icon(Icons.info, color: AppColors.primary),
+      SizedBox(width: 8),
+      Expanded(child: Text(longText)),
+    ]);
+
+    return DemoScaffold(
+      actions: _bugActions(_bug, (v) => setState(() => _bug = v)),
+      body: ScrollPage([
+        const IdentityCard(),
+        const SizedBox(height: 16),
+        sectionTitle('Kasus A - RenderFlex Overflow'),
+        const SizedBox(height: 4),
+        hint(_bug
+            ? 'BUG: Row memberi Text lebar tak terbatas. Muncul garis '
+                'kuning-hitam dan error "RenderFlex overflowed".'
+            : 'FIXED: Expanded membuat Text hanya memakai sisa lebar Row, '
+                'sehingga teks otomatis turun ke baris berikutnya.'),
+        const SizedBox(height: 8),
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          borderColor: (_bug ? AppColors.warn : AppColors.success)
+              .withValues(alpha: 0.5),
+          child: _bug ? buggy : fixed,
+        ),
+      ]),
+    );
+  }
+}
+
+// KASUS B: Vertical viewport was given unbounded height
+class DebugCaseBPage extends StatefulWidget {
+  const DebugCaseBPage({super.key});
+
+  @override
+  State<DebugCaseBPage> createState() => _DebugCaseBPageState();
+}
+
+class _DebugCaseBPageState extends State<DebugCaseBPage> {
+  @override
+  Widget build(BuildContext context) {
+    final list = ListView.builder(
+      itemCount: 20,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 14,
+              backgroundColor: AppColors.primarySoft,
+              child: Text('${i + 1}', style: const TextStyle(fontSize: 12)),
+            ),
+            title: Text('Item ke-${i + 1}'),
+          ),
+        ),
+      ),
+    );
+
+    return DemoScaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const IdentityCard(),
+          const SizedBox(height: 12),
+          sectionTitle('Kasus B - Unbounded Height (FIXED)'),
+          const SizedBox(height: 4),
+          hint('FIXED: ListView dibungkus Expanded sehingga tingginya = sisa '
+              'ruang Column dan dapat di-scroll sendiri.'),
+          const SizedBox(height: 8),
+          Expanded(child: list),
+        ]),
+      ),
+    );
+  }
+}
+
+// KASUS C: Keyboard overflow
+class DebugCaseCPage extends StatefulWidget {
+  const DebugCaseCPage({super.key});
+
+  @override
+  State<DebugCaseCPage> createState() => _DebugCaseCPageState();
+}
+
+class _DebugCaseCPageState extends State<DebugCaseCPage> {
+  bool _bug = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final gap = MediaQuery.sizeOf(context).height * 0.4;
+
+    final content = <Widget>[
+      const IdentityCard(),
+      const SizedBox(height: 12),
+      sectionTitle('Kasus C - Keyboard Overflow'),
+      const SizedBox(height: 4),
+      hint(_bug
+          ? 'BUG: Column biasa tanpa scroll. Saat keyboard muncul, tinggi body '
+              'mengecil dan Column overflow (garis kuning-hitam).'
+          : 'FIXED: isi dibungkus SingleChildScrollView (ScrollPage), sehingga '
+              'form tetap bisa di-scroll dan field aktif terlihat.'),
+      SizedBox(height: gap),
+      AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          TextField(
+            decoration: InputDecoration(
+              labelText: 'Nama',
+              isDense: true,
+              prefixIcon: const Icon(Icons.person_outline, size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Komentar',
+              alignLabelWithHint: true,
+              isDense: true,
+              prefixIcon: const Icon(Icons.description_outlined, size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ]),
+      ),
+    ];
+
+    return DemoScaffold(
+      actions: _bugActions(_bug, (v) => setState(() => _bug = v)),
+      body: _bug
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: content),
+            )
+          : ScrollPage(content),
+    );
+  }
+}
+
+// KASUS D: Navigasi ganda (route ter-push berkali-kali)
+class DebugCaseDPage extends StatefulWidget {
+  const DebugCaseDPage({super.key});
+
+  @override
+  State<DebugCaseDPage> createState() => _DebugCaseDPageState();
+}
+
+class _DebugCaseDPageState extends State<DebugCaseDPage> {
+  bool _bug = true;
+  bool _busy = false; 
+  int _active = 0; 
+
+  Future<void> _open() async {
+    if (!_bug && _busy) return;
+
+    int n = 0;
+    setState(() {
+      _active++;
+      n = _active;
+      if (!_bug) _busy = true;
+    });
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => _DoublePushTarget(n: n)),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _active--;
+      _busy = false; 
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => DemoScaffold(
+        actions: _bugActions(_bug, (v) => setState(() => _bug = v)),
+        body: ScrollPage([
+          const IdentityCard(),
+          const SizedBox(height: 16),
+          sectionTitle('Kasus D - Navigasi Ganda'),
+          const SizedBox(height: 4),
+          hint(_bug
+              ? 'BUG: Tekan tombol beberapa kali dengan cepat. Setiap tap memanggil '
+                  'Navigator.push sehingga halaman tujuan dapat menumpuk. '
+              : 'FIXED: Setelah satu navigasi dimulai, _busy menjadi true sehingga '
+                  'tap berikutnya diabaikan sampai halaman tujuan ditutup.'),
+          const SizedBox(height: 12),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            borderColor: (_bug ? AppColors.warn : AppColors.success)
+                .withValues(alpha: 0.5),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                const Icon(Icons.layers, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Halaman tujuan yang menumpuk: $_active',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+              ]),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: (!_bug && _busy) ? null : _open,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Buka Halaman Tujuan'),
+                style: filled(_bug ? AppColors.warn : AppColors.success),
+              ),
+            ]),
+          ),
+        ]),
+      );
+}
+
+class _DoublePushTarget extends StatelessWidget {
+  final int n;
+  const _DoublePushTarget({required this.n});
+
+  @override
+  Widget build(BuildContext context) => DemoScaffold(
+        body: ScrollPage([
+          const IdentityCard(),
+          const SizedBox(height: 16),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('Halaman tujuan ke-$n',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppColors.primary)),
+              const SizedBox(height: 6),
+              hint(n > 1
+                  ? 'Ada $n halaman bertumpuk. Itu bukti navigasi ganda.'
+                  : 'Hanya satu halaman. Navigasi normal.'),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('Kembali'),
+                style: filled(AppColors.primary, pad: 12),
+              ),
+            ]),
+          ),
         ]),
       );
 }

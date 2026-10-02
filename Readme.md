@@ -175,3 +175,18 @@ Data Mini Quiz. Pada tahap ini saya tetap menggunakan 20 soal lama yang membahas
 Soal tambahan tersebut terdiri dari 10 soal tentang Responsive Layout, 5 soal tentang Navigation, dan 7 soal tentang User Interaction. Materinya mencakup MediaQuery, LayoutBuilder, breakpoint, Expanded, Flexible, Wrap, SingleChildScrollView, Navigator.push/pop, NavigationBar, NavigationRail, InkWell, GestureDetector, validasi form, SnackBar, AlertDialog, dan CircularProgressIndicator.
 
 Dengan penambahan tersebut, jumlah soal Mini Quiz menjadi 42 soal. Format data tetap menggunakan {q, options, answer} agar masih sesuai dengan struktur yang dibaca oleh MiniQuizCard.
+
+Tahap 16 : Debugging Challenge
+
+Pada Tahap 16 saya mengerjakan empat kasus debugging, yaitu RenderFlex overflow, unbounded height, keyboard overflow, dan navigasi ganda. Setiap kasus dibuat dalam versi BUG dan FIXED yang dapat dipilih melalui switch di AppBar, sehingga perbedaan antara error dan perbaikannya bisa dilihat langsung.
+
+Pada Kasus A, Text yang terlalu panjang di dalam Row menyebabkan RenderFlex overflowed. Setelah Text dibungkus dengan Expanded, lebar Text menyesuaikan sisa ruang yang tersedia sehingga teks dapat turun ke baris berikutnya.
+
+Pada Kasus B, ListView yang langsung berada di dalam Column menyebabkan error Vertical viewport was given unbounded height karena ListView tidak mendapatkan batas tinggi yang jelas. Solusinya adalah menggunakan Expanded agar ListView mengisi ruang yang tersedia. Saya juga menemukan beberapa error lanjutan seperti RenderBox was not laid out dan Cannot hit test a render box that has never been laid out, sehingga layar sempat tidak bisa menerima sentuhan. Untuk kebutuhan demo, saya menggunakan IgnorePointer agar switch tetap dapat digunakan.
+
+Pada Kasus C, form yang berada di bagian bawah layar mengalami overflow ketika keyboard muncul karena tinggi area body menjadi lebih kecil. Solusinya menggunakan SingleChildScrollView sehingga halaman dapat digeser dan field yang sedang digunakan tetap dapat terlihat.
+
+Pada Kasus D, menekan tombol beberapa kali dapat menyebabkan Navigator.push() dipanggil berkali-kali sehingga halaman tujuan menumpuk. Saya mengatasinya dengan flag _busy dan menonaktifkan tombol selama proses navigasi berlangsung. Pola ini juga dapat digunakan pada tombol submit atau proses lain agar tidak terjadi aksi ganda.
+
+Dari tahap ini saya memahami bahwa banyak masalah layout Flutter berkaitan dengan constraint, yaitu bagaimana ukuran diberikan dari parent ke child. Sedangkan untuk mencegah aksi yang dilakukan berkali-kali, diperlukan pengaturan state agar proses hanya dapat berjalan satu kali pada waktu yang sama.
+
