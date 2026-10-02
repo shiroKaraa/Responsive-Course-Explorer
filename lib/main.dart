@@ -828,6 +828,18 @@ class HardcodedDemoPage extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            tooltip: 'Buka Profile Form',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileFormPage(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       backgroundColor: AppColors.bg,
@@ -916,18 +928,8 @@ class HardcodedDemoPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Coba putar layar portrait ↔ landscape dan amati '
-                  'perubahan width, height, orientation, dan kategori.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.black45,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
                   'Gunakan ikon di kanan atas untuk membuka halaman '
-                  'Breakpoint Demo, Flex Demo, atau Course Grid.',
+                  'Breakpoint Demo, Flex Demo, Course Grid, atau Profile Form.',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.primary,
@@ -1333,8 +1335,6 @@ class _BoxItem extends StatelessWidget {
   }
 }
 
-// ===== HALAMAN COURSE GRID =====
-
 int columnsFor(double width) {
   if (width < 600) return 1;
   if (width < 840) return 2;
@@ -1579,6 +1579,264 @@ class _GridCourseCard extends StatelessWidget {
   }
 }
 
+// ===== HALAMAN PROFILE FORM =====
+
+class ProfileFormPage extends StatefulWidget {
+  const ProfileFormPage({super.key});
+
+  @override
+  State<ProfileFormPage> createState() => _ProfileFormPageState();
+}
+
+class _ProfileFormPageState extends State<ProfileFormPage> {
+  bool _useScrollView = true;
+
+  final _namaController = TextEditingController(text: studentName);
+  final _nimController = TextEditingController(text: studentId);
+  final _emailController = TextEditingController(text: 'bajaskara@example.com');
+  final _prodiController = TextEditingController(text: 'Pendidikan Teknik Informatika');
+  final _semesterController = TextEditingController(text: '5');
+  final _bioController = TextEditingController(
+    text: 'Mahasiswa PTI yang sedang belajar Flutter untuk pengembangan aplikasi mobile.',
+  );
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _nimController.dispose();
+    _emailController.dispose();
+    _prodiController.dispose();
+    _semesterController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Header identitas
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: AppColors.primarySoft,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/profile.jpg',
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.person,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      studentName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'NIM: $studentId',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        sectionTitle('Form Profil Mahasiswa'),
+        const SizedBox(height: 8),
+
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildField(
+                controller: _namaController,
+                label: 'Nama Lengkap',
+                icon: Icons.person_outline,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _nimController,
+                label: 'NIM',
+                icon: Icons.badge_outlined,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _emailController,
+                label: 'Email',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _prodiController,
+                label: 'Program Studi',
+                icon: Icons.school_outlined,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _semesterController,
+                label: 'Semester',
+                icon: Icons.calendar_today_outlined,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              _buildField(
+                controller: _bioController,
+                label: 'Bio',
+                icon: Icons.description_outlined,
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Catatan eksperimen
+        AppCard(
+          padding: const EdgeInsets.all(14),
+          borderColor: AppColors.primary.withValues(alpha: 0.3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: AppColors.primary, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Eksperimen',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Toggle "Scroll ON/OFF" di AppBar untuk melihat perbedaan. '
+                'Coba juga ketuk field paling bawah (Bio) untuk membuka '
+                'keyboard dan amati apakah halaman tetap bisa di-scroll.',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black54,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        title: const Text('Worksheet Pertemuan 5'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Icon(
+                  _useScrollView ? Icons.swap_vert : Icons.swap_horiz,
+                  size: 16,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _useScrollView ? 'Scroll ON' : 'Scroll OFF',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Switch(
+                  value: _useScrollView,
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: AppColors.success,
+                  onChanged: (v) {
+                    setState(() {
+                      _useScrollView = v;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: _useScrollView
+          ? SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                16,
+                24 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: content,
+            )
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: content,
+            ),
+    );
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        prefixIcon: Icon(icon, size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -1595,7 +1853,7 @@ class MyApp extends StatelessWidget {
           primary: AppColors.primary,
         ),
       ),
-      home: const CourseGridPage(),
+      home: const ProfileFormPage(),
     );
   }
 }

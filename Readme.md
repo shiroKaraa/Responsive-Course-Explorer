@@ -17,3 +17,7 @@ Pada tahap ini saya mencoba menggunakan Expanded dengan nilai flex yang berbeda.
 Tahap 5 : GridView Responsif
 
 Pada tahap ini saya mencoba membuat tampilan daftar course menggunakan GridView. Jumlah kolom dibuat menyesuaikan lebar layar, sehingga pada layar yang kecil tampil 1 kolom, sedangkan saat window diperbesar menjadi 2 atau 3 kolom. Saya juga menyesuaikan ukuran kartu agar teks tetap nyaman dibaca. Dari percobaan ini saya melihat bahwa penggunaan jumlah kolom yang dinamis membuat tampilan grid lebih fleksibel dan tidak mudah mengalami overflow ketika ukuran layar berubah.
+
+Tahap 6 : Scrollable Content dan Keyboard
+
+Pada tahap ini saya mencoba membuat form profil dengan beberapa TextField. Saat scroll belum digunakan, bagian bawah form tidak terlihat karena tinggi konten melebihi layar dan muncul overflow. Setelah menggunakan SingleChildScrollView, seluruh isi form dapat digeser dan ditampilkan dengan baik. Saya juga menemukan bahwa keyboard dapat menutupi field yang berada di bagian bawah, sehingga perlu menambahkan padding berdasarkan viewInsets.bottom. Dari percobaan ini saya memahami bahwa scroll cukup penting untuk form yang memiliki banyak input, terutama saat digunakan pada layar HP.
