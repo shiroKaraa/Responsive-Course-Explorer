@@ -1,4 +1,4 @@
-// ===== DATA MINI QUIZ (dipisah dari widget) =====
+// ===== DATA MINI QUIZ (Sementara Tidak Digunakan Sampai Tahap 15) =====
 
 const List<Map<String, dynamic>> quizQuestions = [
   {
