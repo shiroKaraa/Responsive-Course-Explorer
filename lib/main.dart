@@ -268,6 +268,7 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 5', 'GridView Responsif', Icons.grid_view, const CourseGridPage(standalone: true)),
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
       ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage(standalone: true)),
+      ('Tahap 12', 'Interaction Demo', Icons.touch_app, const InteractionDemoPage()),
     ];
 
     return ListView(
@@ -477,6 +478,319 @@ class _InfoRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class InteractionDemoPage extends StatefulWidget {
+  const InteractionDemoPage({super.key});
+
+  @override
+  State<InteractionDemoPage> createState() => _InteractionDemoPageState();
+}
+
+class _InteractionDemoPageState extends State<InteractionDemoPage> {
+  bool _favorite = false;
+  int _tapCount = 0;
+  int _longPressCount = 0;
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 1200),
+        backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DemoScaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const IdentityCard(),
+            const SizedBox(height: 16),
+
+            sectionTitle('A. InkWell dengan Efek Ripple'),
+            const SizedBox(height: 4),
+            hint(
+              'InkWell memberi efek ripple Material saat ditekan. ',
+            ),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  setState(() => _favorite = !_favorite);
+                  _showSnack(_favorite
+                      ? 'Course ditandai favorite'
+                      : 'Favorite dibatalkan');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: _favorite
+                              ? AppColors.warn.withValues(alpha: 0.2)
+                              : AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.book_outlined,
+                          color: _favorite
+                              ? AppColors.warn
+                              : AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Responsive Layout',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _favorite
+                                  ? 'Ditandai sebagai favorite'
+                                  : 'Tap untuk menandai favorite',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        _favorite ? Icons.star : Icons.star_border,
+                        color: _favorite ? AppColors.warn : AppColors.muted,
+                        size: 26,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            sectionTitle('B. GestureDetector (Tap & Long Press)'),
+            const SizedBox(height: 4),
+            hint(
+              'GestureDetector mendeteksi gesture umum (tap, double tap, '
+              'long press, drag) TANPA efek ripple Material.',
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                setState(() => _tapCount++);
+                _showSnack('Tap terdeteksi ($_tapCount kali)');
+              },
+              onLongPress: () {
+                setState(() => _longPressCount++);
+                _showSnack('Long press terdeteksi ($_longPressCount kali)');
+              },
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.touch_app,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Tap atau Long Press di sini',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tap: $_tapCount   •   Long Press: $_longPressCount',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            sectionTitle('C. Jenis-jenis Button Material'),
+            const SizedBox(height: 4),
+            hint(
+              'Elevated (menonjol), Outlined (garis tepi), Text (teks saja). '
+              'Semuanya punya efek ripple dan feedback Material.',
+            ),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _showSnack('ElevatedButton ditekan'),
+                    icon: const Icon(Icons.thumb_up, size: 18),
+                    label: const Text('ElevatedButton'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _showSnack('OutlinedButton ditekan'),
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('OutlinedButton'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => _showSnack('TextButton ditekan'),
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    label: const Text('TextButton'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            sectionTitle('Kapan Pakai Apa?'),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _RuleRow(
+                    icon: Icons.star,
+                    color: AppColors.primary,
+                    title: 'ElevatedButton',
+                    desc: 'Aksi utama (submit, save, konfirmasi)',
+                  ),
+                  Divider(height: 20),
+                  _RuleRow(
+                    icon: Icons.crop_square,
+                    color: AppColors.primary,
+                    title: 'OutlinedButton',
+                    desc: 'Aksi sekunder (batal, edit, alternatif)',
+                  ),
+                  Divider(height: 20),
+                  _RuleRow(
+                    icon: Icons.text_fields,
+                    color: AppColors.muted,
+                    title: 'TextButton',
+                    desc: 'Aksi tersier (link, "lihat selengkapnya")',
+                  ),
+                  Divider(height: 20),
+                  _RuleRow(
+                    icon: Icons.touch_app,
+                    color: AppColors.warn,
+                    title: 'InkWell',
+                    desc: 'Elemen Material yang perlu ripple + onTap',
+                  ),
+                  Divider(height: 20),
+                  _RuleRow(
+                    icon: Icons.gesture,
+                    color: AppColors.success,
+                    title: 'GestureDetector',
+                    desc: 'Gesture kustom (long press, drag, pan)',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title, desc;
+  const _RuleRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.desc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
           ),
         ),
       ],
