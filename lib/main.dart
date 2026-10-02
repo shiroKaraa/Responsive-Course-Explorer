@@ -142,8 +142,6 @@ class StatusHelper {
   }
 }
 
-// ===== HOME (MENU TAHAP + NAVIGASI) =====
-
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -156,7 +154,7 @@ class HomePage extends StatelessWidget {
       ('Tahap 4', 'Expanded, Flexible, Wrap', Icons.view_column, const FlexDemoPage()),
       ('Tahap 5', 'GridView Responsif', Icons.grid_view, const CourseGridPage()),
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
-      ('Tahap 8', 'Course Detail (Passing Data)', Icons.article_outlined, const CourseGridPage()),
+      ('Tahap 8 & 9', 'Course Detail (Passing Data) Dan Favorite & Returning Data', Icons.star_outline, const CourseGridPage()),
     ];
 
     return DemoScaffold(
@@ -208,8 +206,6 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 7: DETAIL PAGE =====
 
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
@@ -294,39 +290,6 @@ class DetailPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
-
-            AppCard(
-              borderColor: AppColors.success.withValues(alpha: 0.3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.lightbulb_outline,
-                          color: AppColors.success, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'Yang perlu diamati',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  hint(
-                    '1. AppBar otomatis memiliki tombol back (←).\n'
-                    '2. Tombol "Kembali" memanggil Navigator.pop(context) '
-                    'secara eksplisit.\n'
-                    '3. Keduanya menghapus DetailPage dari stack.',
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 24),
           ],
         ),
@@ -334,8 +297,6 @@ class DetailPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 8: COURSE DETAIL PAGE =====
 
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
@@ -437,12 +398,31 @@ class CourseDetailPage extends StatelessWidget {
             const IdentityCard(),
 
             const SizedBox(height: 16),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.star, size: 18),
+                label: const Text('Tandai Favorite & Kembali'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warn,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
             AppCard(
               borderColor: AppColors.primary.withValues(alpha: 0.3),
               child: hint(
-                'Halaman ini menerima data course melalui constructor: '
-                'CourseDetailPage(course: courses[index]). '
-                'Semua informasi di atas berasal dari Map course tersebut.',
+                'Menekan tombol di atas akan memanggil '
+                'Navigator.pop(context, true). Halaman sebelumnya akan '
+                'menerima nilai true dan menampilkan SnackBar.',
               ),
             ),
             const SizedBox(height: 24),
@@ -481,8 +461,6 @@ class CourseDetailPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 1: HARD-CODED vs FLEKSIBEL =====
 
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
@@ -527,8 +505,6 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
     );
   }
 }
-
-// ===== TAHAP 2: MEDIAQUERY =====
 
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
@@ -586,8 +562,6 @@ class MediaQueryPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 3: LAYOUTBUILDER & BREAKPOINT =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -658,8 +632,6 @@ class BreakpointDemoPage extends StatelessWidget {
         }),
       );
 }
-
-// ===== TAHAP 4: EXPANDED, FLEXIBLE, WRAP =====
 
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
@@ -751,8 +723,6 @@ class FlexDemoPage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 5: GRIDVIEW RESPONSIF =====
-
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
 class CourseGridPage extends StatefulWidget {
@@ -764,6 +734,7 @@ class CourseGridPage extends StatefulWidget {
 
 class _CourseGridPageState extends State<CourseGridPage> {
   late final Future<Map<String, dynamic>> _future = loadStudentData();
+  final Set<String> _favorites = {};
 
   @override
   Widget build(BuildContext context) => DemoScaffold(
@@ -793,6 +764,33 @@ class _CourseGridPageState extends State<CourseGridPage> {
                     subtitle: '${s['program'] ?? 'Mahasiswa'} • Semester ${s['semester'] ?? '-'}',
                   ),
                 ),
+                if (_favorites.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: AppCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      borderColor: AppColors.warn.withValues(alpha: 0.4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star,
+                              color: AppColors.warn, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Favorite: ${_favorites.join(', ')}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.warn,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: GridView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -803,7 +801,29 @@ class _CourseGridPageState extends State<CourseGridPage> {
                       mainAxisExtent: 170,
                     ),
                     itemCount: courses.length,
-                    itemBuilder: (_, i) => _TappableCourseCard(course: courses[i]),
+                    itemBuilder: (_, i) {
+                      final course = courses[i];
+                      final code = (course['code'] as String?) ?? '';
+                      return _TappableCourseCard(
+                        course: course,
+                        isFavorite: _favorites.contains(code),
+                        onResult: (result) {
+                          if (result == true) {
+                            setState(() {
+                              _favorites.add(code);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    '${course['title'] ?? 'Course'} ditandai sebagai favorite!'),
+                                backgroundColor: AppColors.success,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
                   ),
                 ),
               ]),
@@ -815,28 +835,37 @@ class _CourseGridPageState extends State<CourseGridPage> {
 
 class _TappableCourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  const _TappableCourseCard({required this.course});
+  final bool isFavorite;
+  final ValueChanged<bool?> onResult;
+
+  const _TappableCourseCard({
+    required this.course,
+    required this.isFavorite,
+    required this.onResult,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (_) => CourseDetailPage(course: course),
           ),
         );
+        onResult(result);
       },
-      child: CourseCard(course: course),
+      child: CourseCard(course: course, isFavorite: isFavorite),
     );
   }
 }
 
 class CourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  const CourseCard({super.key, required this.course});
+  final bool isFavorite;
+  const CourseCard({super.key, required this.course, this.isFavorite = false});
 
   @override
   Widget build(BuildContext context) {
@@ -846,7 +875,9 @@ class CourseCard extends StatelessWidget {
 
     return AppCard(
       padding: const EdgeInsets.all(12),
-      borderColor: color.withValues(alpha: 0.25),
+      borderColor: isFavorite
+          ? AppColors.warn.withValues(alpha: 0.6)
+          : color.withValues(alpha: 0.25),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(StatusHelper.icon(status), color: color, size: 20),
@@ -857,6 +888,8 @@ class CourseCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ),
+          if (isFavorite)
+            const Icon(Icons.star, color: AppColors.warn, size: 18),
         ]),
         const SizedBox(height: 4),
         Text('${course['code'] ?? '-'} • ${course['credits'] ?? '-'} SKS',
@@ -882,8 +915,6 @@ class CourseCard extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 6: SCROLLABLE CONTENT & KEYBOARD =====
 
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});

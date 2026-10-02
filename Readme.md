@@ -37,3 +37,8 @@ Pada tahap ini saya mencoba membuat perpindahan halaman dari HomePage ke DetailP
 Tahap 8 : Passing Data dari List ke Detail Page
 
 Pada tahap ini saya mencoba membuat halaman detail course yang datanya dikirim dari halaman daftar course. Saat salah satu kartu ditekan, data course dikirim melalui constructor ke CourseDetailPage. Hasilnya, satu halaman detail bisa digunakan untuk semua course tanpa perlu membuat halaman baru untuk setiap course. Saya juga menggunakan InkWell agar kartu bisa ditekan dan memberikan efek ripple. Dari percobaan ini saya memahami bahwa data dapat dikirim antar halaman melalui constructor dan membuat kode menjadi lebih sederhana karena halaman detail dapat digunakan kembali.
+
+Tahap 9 : Returning Data dari Screen
+
+Pada tahap ini saya mencoba mengirimkan hasil dari CourseDetailPage kembali ke halaman sebelumnya. Saat tombol Favorite ditekan, halaman detail mengirim nilai true menggunakan Navigator.pop(), kemudian halaman course menerima nilai tersebut melalui await Navigator.push(). Setelah itu, course yang dipilih ditambahkan ke daftar favorite dan muncul SnackBar sebagai tanda bahwa data berhasil diterima. Jika hanya menekan tombol back biasa, tidak ada perubahan karena tidak ada nilai yang dikirim. Dari percobaan ini saya memahami bahwa halaman Flutter tidak hanya bisa menerima data saat dibuka, tetapi juga bisa mengirim hasil kembali ke halaman sebelumnya.
+
