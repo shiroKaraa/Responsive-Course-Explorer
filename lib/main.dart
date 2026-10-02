@@ -781,6 +781,11 @@ class HardcodedDemoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final orientation = MediaQuery.of(context).orientation;
+
+    final category = size.width < 600 ? 'Compact' : 'Wide';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Worksheet Pertemuan 5'),
@@ -789,43 +794,102 @@ class HardcodedDemoPage extends StatelessWidget {
       ),
       backgroundColor: AppColors.bg,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Container dengan width tetap 500px
-            Container(
-              width: 500,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.primary),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Container width: 500 (hard-coded)',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: AppCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Informasi Layar',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
-                  const SizedBox(height: 8),
-                  Text('$studentId - $studentName'),
-                ],
-              ),
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                Text(
+                  'Width: ${size.width.toStringAsFixed(0)} px',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Height: ${size.height.toStringAsFixed(0)} px',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+
+                Text(
+                  'Orientation: $orientation',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Text(
+                      'Kategori: ',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: category == 'Compact'
+                            ? AppColors.warn.withValues(alpha: 0.15)
+                            : AppColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: category == 'Compact'
+                              ? AppColors.warn
+                              : AppColors.success,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const Divider(height: 32),
+
+                // Identitas mahasiswa
+                Text(
+                  studentName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'NIM: $studentId',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Coba putar layar portrait ↔ landscape dan amati '
+                  'perubahan width, height, orientation, dan kategori.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.black45,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'Coba putar layar ke landscape, atau jalankan di emulator ',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
