@@ -45,3 +45,8 @@ Pada tahap ini saya mencoba mengirimkan hasil dari CourseDetailPage kembali ke h
 Tahap 10 : NavigationBar / BottomNavigationBar
 
 Pada Tahap 10, saya menemukan masalah ketika CourseGridPage dipakai di dalam MainShellPage: muncul dua AppBar bertumpuk karena CourseGridPage selalu membawa DemoScaffold (dengan AppBar sendiri) padahal shell sudah menyediakan AppBar. Solusinya adalah menambahkan parameter standalone pada CourseGridPage: ketika standalone: true, halaman dibungkus DemoScaffold (untuk dipanggil dari menu Home via Navigator.push); ketika standalone: false (default), hanya konten grid-nya yang ditampilkan (untuk tab Courses di dalam shell). Pola ini adalah configuration parameter yang umum dipakai agar satu widget dapat beradaptasi di beberapa konteks tanpa duplikasi kode.
+
+Tahap 11 : Adaptive Navigation: NavigationBar vs NavigationRail
+
+Pada tahap ini saya mencoba membuat navigasi yang dapat menyesuaikan ukuran layar. Saat ukuran window masih kecil, navigasi ditampilkan di bagian bawah menggunakan NavigationBar. Ketika window diperbesar sampai 840px atau lebih, navigasi berubah menjadi NavigationRail di sebelah kiri. Saya juga menggunakan satu list _destinations untuk kedua jenis navigasi agar tidak perlu menulis data yang sama dua kali. Saat ukuran window diubah, tab yang sedang aktif tetap sama dan data di dalam tab juga tidak hilang. Dari percobaan ini saya memahami bahwa tampilan navigasi bisa dibuat berbeda sesuai ukuran layar tanpa harus mengubah fungsi navigasinya.
+

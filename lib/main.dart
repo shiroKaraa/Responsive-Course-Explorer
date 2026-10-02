@@ -142,7 +142,7 @@ class StatusHelper {
   }
 }
 
-// ===== MAIN SHELL (NAVIGATION BAR) =====
+// ===== MAIN SHELL (ADAPTIVE: NAVBAR / NAVRAIL) =====
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -154,14 +154,33 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _currentIndex = 0;
 
-  final _pages = const <Widget>[
+  static const _pages = <Widget>[
     _HomeTabPage(),
     _CoursesTabPage(),
     _ProfileTabPage(),
   ];
 
+  static const _destinations = <(IconData, IconData, String)>[
+    (Icons.home_outlined, Icons.home, 'Home'),
+    (Icons.school_outlined, Icons.school, 'Courses'),
+    (Icons.person_outline, Icons.person, 'Profile'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isExpanded = constraints.maxWidth >= 840;
+
+        if (isExpanded) {
+          return _buildExpandedLayout();
+        }
+        return _buildCompactLayout();
+      },
+    );
+  }
+
+  Widget _buildCompactLayout() {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -178,21 +197,57 @@ class _MainShellPageState extends State<MainShellPage> {
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
         backgroundColor: Colors.white,
         indicatorColor: AppColors.primarySoft,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppColors.primary),
-            label: 'Home',
+        destinations: [
+          for (final d in _destinations)
+            NavigationDestination(
+              icon: Icon(d.$1),
+              selectedIcon: Icon(d.$2, color: AppColors.primary),
+              label: d.$3,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandedLayout() {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        title: const Text('Worksheet Pertemuan 5'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: Row(
+        children: [
+          NavigationRail(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
+            backgroundColor: Colors.white,
+            indicatorColor: AppColors.primarySoft,
+            labelType: NavigationRailLabelType.all,
+            leading: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.primarySoft,
+                child: Icon(Icons.school, color: AppColors.primary),
+              ),
+            ),
+            destinations: [
+              for (final d in _destinations)
+                NavigationRailDestination(
+                  icon: Icon(d.$1),
+                  selectedIcon: Icon(d.$2, color: AppColors.primary),
+                  label: Text(d.$3),
+                ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school, color: AppColors.primary),
-            label: 'Courses',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: AppColors.primary),
-            label: 'Profile',
+          const VerticalDivider(width: 1, thickness: 1),
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _pages,
+            ),
           ),
         ],
       ),
@@ -212,7 +267,7 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 4', 'Expanded, Flexible, Wrap', Icons.view_column, const FlexDemoPage()),
       ('Tahap 5', 'GridView Responsif', Icons.grid_view, const CourseGridPage(standalone: true)),
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
-      ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage()),
+      ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage(standalone: true)),
     ];
 
     return ListView(
@@ -428,8 +483,6 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 7: DETAIL PAGE =====
 
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
@@ -1059,10 +1112,6 @@ class _CourseGridPageState extends State<CourseGridPage> {
     }
     return content;
   }
-}
-
-class _StandaloneCourseGrid extends CourseGridPage {
-  const _StandaloneCourseGrid();
 }
 
 class _TappableCourseCard extends StatelessWidget {
