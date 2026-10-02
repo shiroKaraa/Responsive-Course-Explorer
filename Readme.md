@@ -14,3 +14,6 @@ Tahap 4 : Expanded, Flexible, dan Wrap
 
 Pada tahap ini saya mencoba menggunakan Expanded dengan nilai flex yang berbeda. Hasilnya, ruang yang tersedia terbagi sesuai perbandingan flex, sehingga flex: 2 mendapatkan ruang dua kali lebih besar dari flex: 1. Saya juga mencoba Wrap untuk menampilkan beberapa Chip. Saat ukuran layar diperkecil, Chip otomatis berpindah ke baris berikutnya sehingga tidak terjadi overflow. Dari percobaan ini saya memahami bahwa Expanded berguna untuk membagi ruang, sedangkan Wrap cocok digunakan ketika jumlah item bisa bertambah atau ruang yang tersedia terbatas.
 
+Tahap 5 : GridView Responsif
+
+Pada tahap ini saya mencoba membuat tampilan daftar course menggunakan GridView. Jumlah kolom dibuat menyesuaikan lebar layar, sehingga pada layar yang kecil tampil 1 kolom, sedangkan saat window diperbesar menjadi 2 atau 3 kolom. Saya juga menyesuaikan ukuran kartu agar teks tetap nyaman dibaca. Dari percobaan ini saya melihat bahwa penggunaan jumlah kolom yang dinamis membuat tampilan grid lebih fleksibel dan tidak mudah mengalami overflow ketika ukuran layar berubah.

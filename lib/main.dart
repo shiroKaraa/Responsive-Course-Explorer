@@ -816,6 +816,18 @@ class HardcodedDemoPage extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            tooltip: 'Buka Course Grid',
+            icon: const Icon(Icons.grid_on),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CourseGridPage(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       backgroundColor: AppColors.bg,
@@ -914,8 +926,8 @@ class HardcodedDemoPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Tekan ikon grid di kanan atas untuk membuka halaman '
-                  'Breakpoint Demo, dan ikon kolom untuk membuka Flex Demo.',
+                  'Gunakan ikon di kanan atas untuk membuka halaman '
+                  'Breakpoint Demo, Flex Demo, atau Course Grid.',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.primary,
@@ -930,8 +942,6 @@ class HardcodedDemoPage extends StatelessWidget {
     );
   }
 }
-
-// ===== WIDGET LAYOUT UNTUK BREAKPOINT DEMO =====
 
 class CompactLayout extends StatelessWidget {
   const CompactLayout({super.key});
@@ -1142,7 +1152,6 @@ class FlexDemoPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Identitas
             AppCard(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -1263,8 +1272,7 @@ class FlexDemoPage extends StatelessWidget {
             sectionTitle('C. Perbandingan: Row Biasa (Overflow)'),
             const SizedBox(height: 4),
             const Text(
-              'Row di bawah ini berisi banyak item dengan lebar tetap. '
-              'Jika layar sempit, akan muncul overflow (garis kuning-hitam).',
+              'Row di bawah ini berisi banyak item dengan lebar tetap. ',
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 8),
@@ -1294,7 +1302,6 @@ class FlexDemoPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
             const SizedBox(height: 24),
           ],
         ),
@@ -1326,6 +1333,252 @@ class _BoxItem extends StatelessWidget {
   }
 }
 
+// ===== HALAMAN COURSE GRID =====
+
+int columnsFor(double width) {
+  if (width < 600) return 1;
+  if (width < 840) return 2;
+  return 3;
+}
+
+class CourseGridPage extends StatefulWidget {
+  const CourseGridPage({super.key});
+
+  @override
+  State<CourseGridPage> createState() => _CourseGridPageState();
+}
+
+class _CourseGridPageState extends State<CourseGridPage> {
+  late Future<Map<String, dynamic>> _studentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _studentFuture = loadStudentData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        title: const Text('Worksheet Pertemuan 5'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: SafeArea(
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _studentFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'Gagal memuat data: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              );
+            }
+            return _buildContent(snapshot.data!);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(Map<String, dynamic> data) {
+    final student = data['student'] as Map<String, dynamic>;
+    final courses = (data['courses'] as List).cast<Map<String, dynamic>>();
+
+    final name = (student['name'] as String?) ?? studentName;
+    final nim = (student['nim'] as String?) ?? studentId;
+    final program = (student['program'] as String?) ?? 'Mahasiswa';
+    final semester = student['semester'] ?? '-';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = columnsFor(constraints.maxWidth);
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: _headerCard(name, nim, program, semester),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: cols == 1 ? 2.6 : 1.5,
+                ),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  return _GridCourseCard(course: courses[index]);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _headerCard(
+      String name, String nim, String program, dynamic semester) {
+    return AppCard(
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppColors.primarySoft,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/profile.jpg',
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.person,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'NIM: $nim',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$program • Semester $semester',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.black45,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.grid_view,
+            color: AppColors.primary.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GridCourseCard extends StatelessWidget {
+  final Map<String, dynamic> course;
+  const _GridCourseCard({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = (course['status'] as String?) ?? 'planned';
+    final color = StatusHelper.color(status);
+    final title = (course['title'] as String?) ?? 'Tanpa Judul';
+    final code = (course['code'] as String?) ?? '-';
+    final credits = course['credits']?.toString() ?? '-';
+    final description = (course['description'] as String?) ?? '';
+    final dosen = (course['dosen'] as String?) ?? '-';
+
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      borderColor: color.withValues(alpha: 0.25),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(StatusHelper.icon(status), color: color, size: 20),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$code • $credits SKS',
+            style: const TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+          const SizedBox(height: 6),
+          if (description.isNotEmpty)
+            Expanded(
+              child: Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black45,
+                  height: 1.3,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+          else
+            const Spacer(),
+          const SizedBox(height: 6),
+          Text(
+            'Dosen: $dosen',
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.black45,
+              fontStyle: FontStyle.italic,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: StatusHelper.badge(status),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -1342,7 +1595,7 @@ class MyApp extends StatelessWidget {
           primary: AppColors.primary,
         ),
       ),
-      home: const FlexDemoPage(),
+      home: const CourseGridPage(),
     );
   }
 }
