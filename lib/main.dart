@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-// IDENTITAS
+// ===== IDENTITAS =====
 const String studentName = 'I Kadek Dwi Bajaskara';
 const String studentId = '2415051068';
+const String appTitle = 'Worksheet Pertemuan 5';
 
 class AppColors {
   static const primary = Color(0xFF1565C0);
@@ -16,71 +17,134 @@ class AppColors {
   static const border = Color(0xFFE3E8EF);
 }
 
-Future<Map<String, dynamic>> loadStudentData() async => jsonDecode(
-    await rootBundle.loadString('assets/data/student_data.json'))
-    as Map<String, dynamic>;
+// ===== DATA & STATE BERSAMA =====
+
+// Top-level variable bersifat lazy: JSON hanya dibaca sekali lalu dipakai ulang.
+final Future<Map<String, dynamic>> studentDataFuture = rootBundle
+    .loadString('assets/data/student_data.json')
+    .then((s) => jsonDecode(s) as Map<String, dynamic>);
+
+// Favorite dipakai bersama oleh tab Courses, halaman standalone, dan Profile.
+final ValueNotifier<Set<String>> favorites = ValueNotifier(<String>{});
+
+// ===== HELPER =====
+
+void go(BuildContext c, Widget page) =>
+    Navigator.push(c, MaterialPageRoute(builder: (_) => page));
+
+void showMsg(BuildContext c, String msg,
+    {Color color = AppColors.primary, SnackBarAction? action}) {
+  final m = ScaffoldMessenger.of(c);
+  m.clearSnackBars();
+  m.showSnackBar(SnackBar(
+    content: Text(msg),
+    backgroundColor: color,
+    duration: const Duration(seconds: 2),
+    behavior: SnackBarBehavior.floating,
+    action: action,
+  ));
+}
+
+ButtonStyle filled(Color bg, {double pad = 14}) => ElevatedButton.styleFrom(
+      backgroundColor: bg,
+      foregroundColor: Colors.white,
+      padding: EdgeInsets.symmetric(vertical: pad),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+
+ButtonStyle outlined(Color c, {double pad = 14}) => OutlinedButton.styleFrom(
+      foregroundColor: c,
+      side: BorderSide(color: c),
+      padding: EdgeInsets.symmetric(vertical: pad),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+
+Widget sectionTitle(String t) =>
+    Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
+
+Widget hint(String t) =>
+    Text(t, style: const TextStyle(fontSize: 12, color: Colors.black54));
 
 // ===== REUSABLE WIDGET =====
 
+/// Kartu dasar. Material transparan di dalamnya membuat ripple InkWell
+/// tampil DI ATAS warna kartu (kalau tidak, ripple tertutup warna putih).
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   final Color? borderColor;
+  final VoidCallback? onTap, onLongPress;
   const AppCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(14),
     this.borderColor,
+    this.onTap,
+    this.onLongPress,
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor ?? AppColors.border),
-          boxShadow: const [
-            BoxShadow(color: Color(0x0F000000), blurRadius: 6, offset: Offset(0, 2)),
-          ],
-        ),
-        child: child,
-      );
+  Widget build(BuildContext context) {
+    final r = BorderRadius.circular(14);
+    Widget inner = Padding(padding: padding, child: child);
+    if (onTap != null || onLongPress != null) {
+      inner = InkWell(
+          borderRadius: r, onTap: onTap, onLongPress: onLongPress, child: inner);
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: r,
+        border: Border.all(color: borderColor ?? AppColors.border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Material(type: MaterialType.transparency, child: inner),
+    );
+  }
 }
-
-Widget sectionTitle(String t) => Text(t,
-    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
-
-Widget hint(String t) =>
-    Text(t, style: const TextStyle(fontSize: 12, color: Colors.black54));
 
 class DemoScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget>? actions;
-  const DemoScaffold({super.key, required this.body, this.actions});
+  final Widget? bottomNavigationBar;
+  const DemoScaffold(
+      {super.key, required this.body, this.actions, this.bottomNavigationBar});
 
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: AppColors.bg,
         appBar: AppBar(
-          title: const Text('Worksheet Pertemuan 5'),
+          title: const Text(appTitle),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           actions: actions,
         ),
         body: body,
+        bottomNavigationBar: bottomNavigationBar,
+      );
+}
+
+/// Halaman scroll standar (Tahap 6): padding bawah ikut tinggi keyboard.
+class ScrollPage extends StatelessWidget {
+  final List<Widget> children;
+  const ScrollPage(this.children, {super.key});
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+            16, 16, 16, 24 + MediaQuery.viewInsetsOf(context).bottom),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
       );
 }
 
 class IdentityCard extends StatelessWidget {
   final String name, nim;
   final String? subtitle;
-  const IdentityCard({
-    super.key,
-    this.name = studentName,
-    this.nim = studentId,
-    this.subtitle,
-  });
+  const IdentityCard(
+      {super.key, this.name = studentName, this.nim = studentId, this.subtitle});
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -127,22 +191,80 @@ class StatusHelper {
 
   static Color color(String s) => _of(s).$1;
   static IconData icon(String s) => _of(s).$2;
+  static String label(String s) => _of(s).$3;
 
   static Widget badge(String s) {
-    final (c, _, label) = _of(s);
+    final c = color(s);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label,
+      child: Text(label(s),
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: c)),
     );
   }
 }
 
-// ===== MAIN SHELL (ADAPTIVE: NAVBAR / NAVRAIL) =====
+/// Baris "ikon - label ..... nilai" (dipakai Profile & Course Detail).
+class InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label, value;
+  const InfoRow(this.icon, this.label, this.value, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        const Spacer(),
+        Flexible(
+          child: Text(value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+        ),
+      ]);
+}
+
+/// Baris "ikon + judul + deskripsi" (panduan "Kapan Pakai Apa?").
+class RuleRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title, desc;
+  const RuleRow(this.icon, this.color, this.title, this.desc, {super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 2),
+            Text(desc,
+                style: const TextStyle(
+                    fontSize: 12, color: Colors.black54, height: 1.4)),
+          ]),
+        ),
+      ]);
+}
+
+Widget ruleCard(List<RuleRow> rows) => AppCard(
+      child: Column(children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const Divider(height: 20),
+          rows[i],
+        ],
+      ]),
+    );
+
+// ===== TAHAP 10 & 11: MAIN SHELL (NavigationBar <-> NavigationRail) =====
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -152,107 +274,67 @@ class MainShellPage extends StatefulWidget {
 }
 
 class _MainShellPageState extends State<MainShellPage> {
-  int _currentIndex = 0;
+  int _index = 0;
 
-  static const _pages = <Widget>[
-    _HomeTabPage(),
-    _CoursesTabPage(),
-    _ProfileTabPage(),
-  ];
+  static const _pages = <Widget>[_HomeTabPage(), CourseGridPage(), _ProfileTabPage()];
 
-  static const _destinations = <(IconData, IconData, String)>[
+  // Satu daftar destinasi dipakai oleh NavigationBar maupun NavigationRail.
+  static const _dest = <(IconData, IconData, String)>[
     (Icons.home_outlined, Icons.home, 'Home'),
     (Icons.school_outlined, Icons.school, 'Courses'),
     (Icons.person_outline, Icons.person, 'Profile'),
   ];
 
+  void _select(int i) => setState(() => _index = i);
+
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isExpanded = constraints.maxWidth >= 840;
-
-        if (isExpanded) {
-          return _buildExpandedLayout();
-        }
-        return _buildCompactLayout();
-      },
-    );
-  }
-
-  Widget _buildCompactLayout() {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text('Worksheet Pertemuan 5'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        backgroundColor: Colors.white,
-        indicatorColor: AppColors.primarySoft,
-        destinations: [
-          for (final d in _destinations)
-            NavigationDestination(
-              icon: Icon(d.$1),
-              selectedIcon: Icon(d.$2, color: AppColors.primary),
-              label: d.$3,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpandedLayout() {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text('Worksheet Pertemuan 5'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (i) => setState(() => _currentIndex = i),
-            backgroundColor: Colors.white,
-            indicatorColor: AppColors.primarySoft,
-            labelType: NavigationRailLabelType.all,
-            leading: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.primarySoft,
-                child: Icon(Icons.school, color: AppColors.primary),
-              ),
-            ),
-            destinations: [
-              for (final d in _destinations)
-                NavigationRailDestination(
-                  icon: Icon(d.$1),
-                  selectedIcon: Icon(d.$2, color: AppColors.primary),
-                  label: Text(d.$3),
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
+        final wide = c.maxWidth >= 840;
+        // Satu Scaffold + key pada konten: halaman aktif & state-nya tidak
+        // hilang saat layout berpindah antara compact dan expanded.
+        return DemoScaffold(
+          bottomNavigationBar: wide
+              ? null
+              : NavigationBar(
+                  selectedIndex: _index,
+                  onDestinationSelected: _select,
+                  backgroundColor: Colors.white,
+                  indicatorColor: AppColors.primarySoft,
+                  destinations: [
+                    for (final d in _dest)
+                      NavigationDestination(
+                        icon: Icon(d.$1),
+                        selectedIcon: Icon(d.$2, color: AppColors.primary),
+                        label: d.$3,
+                      ),
+                  ],
                 ),
+          body: Row(children: [
+            if (wide) ...[
+              NavigationRail(
+                selectedIndex: _index,
+                onDestinationSelected: _select,
+                backgroundColor: Colors.white,
+                indicatorColor: AppColors.primarySoft,
+                labelType: NavigationRailLabelType.all,
+                destinations: [
+                  for (final d in _dest)
+                    NavigationRailDestination(
+                      icon: Icon(d.$1),
+                      selectedIcon: Icon(d.$2, color: AppColors.primary),
+                      label: Text(d.$3),
+                    ),
+                ],
+              ),
+              const VerticalDivider(width: 1, thickness: 1),
             ],
-          ),
-          const VerticalDivider(width: 1, thickness: 1),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _pages,
+            Expanded(
+              key: const ValueKey('content'),
+              child: IndexedStack(index: _index, children: _pages),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ]),
+        );
+      });
 }
 
 class _HomeTabPage extends StatelessWidget {
@@ -265,9 +347,9 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 2', 'MediaQuery', Icons.straighten, const MediaQueryPage()),
       ('Tahap 3', 'LayoutBuilder & Breakpoint', Icons.devices, const BreakpointDemoPage()),
       ('Tahap 4', 'Expanded, Flexible, Wrap', Icons.view_column, const FlexDemoPage()),
-      ('Tahap 5', 'GridView Responsif', Icons.grid_view, const CourseGridPage(standalone: true)),
+      ('Tahap 5, 8 & 9', 'Grid, Detail & Favorite', Icons.grid_view, const CourseGridPage(standalone: true)),
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
-      ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage(standalone: true)),
+      ('Tahap 7', 'Navigator.push() & pop()', Icons.open_in_new, const DetailPage()),
       ('Tahap 12', 'Interaction Demo', Icons.touch_app, const InteractionDemoPage()),
       ('Tahap 13', 'Form & Validation', Icons.edit_note, const FeedbackFormPage()),
       ('Tahap 14', 'Feedback Demo', Icons.notifications_active, const FeedbackDemoPage()),
@@ -278,30 +360,8 @@ class _HomeTabPage extends StatelessWidget {
       children: [
         const IdentityCard(),
         const SizedBox(height: 16),
-
-        AppCard(
-          padding: EdgeInsets.zero,
-          borderColor: AppColors.primary.withValues(alpha: 0.4),
-          child: ListTile(
-            leading: const Icon(Icons.open_in_new, color: AppColors.primary),
-            title: const Text(
-              'Tahap 7: Buka Detail Page',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: const Text('Navigator.push() dan Navigator.pop()'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const DetailPage()),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
         sectionTitle('Menu Tahapan'),
         const SizedBox(height: 8),
-
         for (final m in menu)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -311,60 +371,10 @@ class _HomeTabPage extends StatelessWidget {
                 leading: Icon(m.$3, color: AppColors.primary),
                 title: Text('${m.$1}: ${m.$2}'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => m.$4)),
+                onTap: () => go(context, m.$4),
               ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-class _CoursesTabPage extends StatelessWidget {
-  const _CoursesTabPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CourseGridPage();
-  }
-}
-
-class _ProfileTabPage extends StatelessWidget {
-  const _ProfileTabPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
-          IdentityCard(subtitle: 'Pendidikan Teknik Informatika • Semester 5'),
-          SizedBox(height: 16),
-          _ProfileStats(),
-          SizedBox(height: 16),
-          _ProfileInfoCard(),
-          SizedBox(height: 16),
-          _ProfileAboutCard(),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileStats extends StatelessWidget {
-  const _ProfileStats();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: const [
-        _StatTile(icon: Icons.book_outlined, label: 'Topik', value: '5'),
-        SizedBox(width: 10),
-        _StatTile(icon: Icons.star_outline, label: 'Favorite', value: '0'),
-        SizedBox(width: 10),
-        _StatTile(icon: Icons.trending_up, label: 'Progress', value: '20%'),
       ],
     );
   }
@@ -373,1304 +383,70 @@ class _ProfileStats extends StatelessWidget {
 class _StatTile extends StatelessWidget {
   final IconData icon;
   final String label, value;
-  const _StatTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _StatTile(this.icon, this.label, this.value);
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: AppCard(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        child: Column(
-          children: [
+  Widget build(BuildContext context) => Expanded(
+        child: AppCard(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          child: Column(children: [
             Icon(icon, color: AppColors.primary, size: 22),
             const SizedBox(height: 6),
             Text(value,
                 style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary)),
+                    fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 2),
-            Text(label,
-                style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          ],
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          ]),
         ),
-      ),
-    );
-  }
+      );
 }
 
-class _ProfileInfoCard extends StatelessWidget {
-  const _ProfileInfoCard();
+class _ProfileTabPage extends StatelessWidget {
+  const _ProfileTabPage();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+  Widget build(BuildContext context) => ScrollPage([
+        const IdentityCard(subtitle: 'Pendidikan Teknik Informatika • Semester 5'),
+        const SizedBox(height: 16),
+        ValueListenableBuilder<Set<String>>(
+          valueListenable: favorites,
+          builder: (_, favs, __) => Row(children: [
+            const _StatTile(Icons.book_outlined, 'Topik', '5'),
+            const SizedBox(width: 10),
+            _StatTile(Icons.star_outline, 'Favorite', '${favs.length}'),
+            const SizedBox(width: 10),
+            const _StatTile(Icons.trending_up, 'Progress', '20%'),
+          ]),
+        ),
+        const SizedBox(height: 16),
         sectionTitle('Informasi Mahasiswa'),
         const SizedBox(height: 8),
-        AppCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: const [
-              _InfoRow(Icons.person_outline, 'Nama', studentName),
-              Divider(height: 20),
-              _InfoRow(Icons.badge_outlined, 'NIM', studentId),
-              Divider(height: 20),
-              _InfoRow(Icons.school_outlined, 'Program Studi',
-                  'Pendidikan Teknik Informatika'),
-              Divider(height: 20),
-              _InfoRow(Icons.calendar_today_outlined, 'Semester', '5'),
-            ],
-          ),
+        const AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            InfoRow(Icons.person_outline, 'Nama', studentName),
+            Divider(height: 20),
+            InfoRow(Icons.badge_outlined, 'NIM', studentId),
+            Divider(height: 20),
+            InfoRow(Icons.school_outlined, 'Program Studi', 'Pendidikan Teknik Informatika'),
+            Divider(height: 20),
+            InfoRow(Icons.calendar_today_outlined, 'Semester', '5'),
+          ]),
         ),
-      ],
-    );
-  }
-}
-
-class _ProfileAboutCard extends StatelessWidget {
-  const _ProfileAboutCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        const SizedBox(height: 16),
         sectionTitle('Tentang Aplikasi'),
         const SizedBox(height: 8),
         AppCard(
           borderColor: AppColors.primary.withValues(alpha: 0.3),
-          child: hint(
-            'Aplikasi ini adalah hasil praktikum Worksheet Pertemuan 5: '
-            'Responsive Layout, Navigation & User Interaction. '
-            'Nama dan NIM ditampilkan pada setiap tahap sebagai bukti identitas.',
-          ),
+          child: hint('Aplikasi ini adalah hasil praktikum Worksheet Pertemuan 5: '
+              'Responsive Layout, Navigation & User Interaction. '
+              'Nama dan NIM ditampilkan pada setiap tahap sebagai bukti identitas.'),
         ),
-      ],
-    );
-  }
+      ]);
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  const _InfoRow(this.icon, this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(fontSize: 13, color: Colors.black54)),
-        const Spacer(),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class FeedbackDemoPage extends StatefulWidget {
-  const FeedbackDemoPage({super.key});
-
-  @override
-  State<FeedbackDemoPage> createState() => _FeedbackDemoPageState();
-}
-
-class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
-  String _lastAction = '-';
-
-  void _showSnackBar() {
-    setState(() => _lastAction = 'SnackBar ditampilkan');
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text('Data berhasil disimpan.'),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Lihat',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Aksi "Lihat" dipilih.'),
-                duration: Duration(seconds: 1),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showConfirmDialog() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi'),
-        content: const Text(
-          'Apakah Anda yakin ingin menghapus data ini? '
-          'Tindakan ini tidak bisa dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _lastAction = (confirmed == true)
-          ? 'Data dihapus (dikonfirmasi)'
-          : 'Penghapusan dibatalkan';
-    });
-
-    if (confirmed == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data berhasil dihapus.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Penghapusan dibatalkan.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  Future<void> _showLoading() async {
-    setState(() => _lastAction = 'Loading...');
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: AppCard(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Memuat data...',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Mohon tunggu sebentar',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) return;
-
-    Navigator.of(context, rootNavigator: true).pop();
-
-    setState(() => _lastAction = 'Data berhasil dimuat');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data berhasil dimuat.'),
-        backgroundColor: AppColors.success,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const IdentityCard(),
-            const SizedBox(height: 16),
-
-            sectionTitle('Umpan Balik ke Pengguna'),
-            const SizedBox(height: 4),
-            hint(
-              'SnackBar untuk feedback singkat, AlertDialog untuk konfirmasi, '
-              'dan CircularProgressIndicator untuk loading.',
-            ),
-            const SizedBox(height: 12),
-
-            AppCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _showSnackBar,
-                    icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Simpan Data (SnackBar)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: _showConfirmDialog,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Hapus Data (Dialog)'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: _showLoading,
-                    icon: const Icon(Icons.download, size: 18),
-                    label: const Text('Muat Data (Loading)'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            AppCard(
-              padding: const EdgeInsets.all(14),
-              borderColor: AppColors.primary.withValues(alpha: 0.3),
-              child: Row(
-                children: [
-                  const Icon(Icons.history, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Aksi terakhir:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _lastAction,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            sectionTitle('Kapan Pakai Apa?'),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  _FeedbackRuleRow(
-                    icon: Icons.notifications_active,
-                    color: AppColors.success,
-                    title: 'SnackBar',
-                    desc: 'Feedback singkat, tidak memblokir. '
-                        'Contoh: "Data tersimpan", "Berhasil login".',
-                  ),
-                  Divider(height: 20),
-                  _FeedbackRuleRow(
-                    icon: Icons.help_outline,
-                    color: AppColors.warn,
-                    title: 'AlertDialog',
-                    desc: 'Konfirmasi/perhatian, memblokir sampai user respon. '
-                        'Contoh: "Yakin hapus?", "Keluar aplikasi?".',
-                  ),
-                  Divider(height: 20),
-                  _FeedbackRuleRow(
-                    icon: Icons.hourglass_top,
-                    color: AppColors.primary,
-                    title: 'Loading Indicator',
-                    desc: 'Operasi yang butuh waktu. '
-                        'Contoh: "Memuat data...", "Mengirim...".',
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FeedbackRuleRow extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title, desc;
-  const _FeedbackRuleRow({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.desc,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                desc,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class FeedbackFormPage extends StatefulWidget {
-  const FeedbackFormPage({super.key});
-
-  @override
-  State<FeedbackFormPage> createState() => _FeedbackFormPageState();
-}
-
-class _FeedbackFormPageState extends State<FeedbackFormPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _nimController = TextEditingController();
-  final _commentController = TextEditingController();
-
-  bool _submitted = false;
-  bool _autoValidate = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _nimController.dispose();
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Nama wajib diisi';
-    }
-    if (value.trim().length < 3) {
-      return 'Nama minimal 3 karakter';
-    }
-    return null;
-  }
-
-  String? _validateNim(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'NIM wajib diisi';
-    }
-    if (value.trim().length < 5) {
-      return 'NIM minimal 5 karakter';
-    }
-    if (int.tryParse(value.trim()) == null) {
-      return 'NIM hanya boleh berisi angka';
-    }
-    return null;
-  }
-
-  String? _validateComment(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Komentar wajib diisi';
-    }
-    if (value.trim().length < 5) {
-      return 'Komentar minimal 5 karakter';
-    }
-    return null;
-  }
-
-  void _submit() {
-    setState(() {
-      _autoValidate = true;
-      _submitted = true;
-    });
-
-    if (_formKey.currentState!.validate()) {
-      FocusScope.of(context).unfocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Terima kasih, ${_nameController.text.trim()}! Feedback Anda sudah terkirim.'),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mohon periksa kembali field yang bertanda merah.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _reset() {
-    _formKey.currentState?.reset();
-    _nameController.clear();
-    _nimController.clear();
-    _commentController.clear();
-    setState(() {
-      _submitted = false;
-      _autoValidate = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          16, 12, 16,
-          24 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: _autoValidate
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const IdentityCard(),
-              const SizedBox(height: 16),
-
-              sectionTitle('Form Feedback'),
-              const SizedBox(height: 4),
-              hint(
-                'Semua field wajib diisi. Nama minimal 3 karakter, NIM '
-                'hanya angka, dan komentar minimal 5 karakter.',
-              ),
-              const SizedBox(height: 12),
-
-              AppCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama Lengkap',
-                        hintText: studentName,
-                        isDense: true,
-                        prefixIcon: Icon(Icons.person_outline, size: 20),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validateName,
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nimController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'NIM',
-                        hintText: studentId,
-                        isDense: true,
-                        prefixIcon: Icon(Icons.badge_outlined, size: 20),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validateNim,
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _commentController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Komentar',
-                        hintText: 'Tulis feedback Anda (min. 5 karakter)',
-                        alignLabelWithHint: true,
-                        isDense: true,
-                        prefixIcon: Icon(Icons.description_outlined, size: 20),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validateComment,
-                      textInputAction: TextInputAction.newline,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _reset,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Reset'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      onPressed: _submit,
-                      icon: const Icon(Icons.send, size: 18),
-                      label: const Text('Kirim Feedback'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              if (_submitted) ...[
-                const SizedBox(height: 16),
-                AppCard(
-                  padding: const EdgeInsets.all(14),
-                  borderColor: AppColors.success.withValues(alpha: 0.4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.check_circle,
-                              color: AppColors.success, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Data Terkirim',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _previewRow('Nama', _nameController.text),
-                      _previewRow('NIM', _nimController.text),
-                      _previewRow('Komentar', _commentController.text),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 16),
-              AppCard(
-                borderColor: AppColors.primary.withValues(alpha: 0.3),
-                child: hint(
-                  'Form + GlobalKey<FormState> dipakai untuk memvalidasi '
-                  'semua field sekaligus dengan _formKey.currentState!.validate(). '
-                  'Setiap TextFormField punya validator sendiri.',
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _previewRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.isEmpty ? '-' : value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class InteractionDemoPage extends StatefulWidget {
-  const InteractionDemoPage({super.key});
-
-  @override
-  State<InteractionDemoPage> createState() => _InteractionDemoPageState();
-}
-
-class _InteractionDemoPageState extends State<InteractionDemoPage> {
-  bool _favorite = false;
-  int _tapCount = 0;
-  int _longPressCount = 0;
-
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(milliseconds: 1200),
-        backgroundColor: AppColors.primary,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const IdentityCard(),
-            const SizedBox(height: 16),
-
-            sectionTitle('A. InkWell dengan Efek Ripple'),
-            const SizedBox(height: 4),
-            hint(
-              'InkWell memberi efek ripple Material saat ditekan. ',
-            ),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  setState(() => _favorite = !_favorite);
-                  _showSnack(_favorite
-                      ? 'Course ditandai favorite'
-                      : 'Favorite dibatalkan');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: _favorite
-                              ? AppColors.warn.withValues(alpha: 0.2)
-                              : AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.book_outlined,
-                          color: _favorite
-                              ? AppColors.warn
-                              : AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Responsive Layout',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _favorite
-                                  ? 'Ditandai sebagai favorite'
-                                  : 'Tap untuk menandai favorite',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        _favorite ? Icons.star : Icons.star_border,
-                        color: _favorite ? AppColors.warn : AppColors.muted,
-                        size: 26,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            sectionTitle('B. GestureDetector (Tap & Long Press)'),
-            const SizedBox(height: 4),
-            hint(
-              'GestureDetector mendeteksi gesture umum (tap, double tap, '
-              'long press, drag) TANPA efek ripple Material.',
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () {
-                setState(() => _tapCount++);
-                _showSnack('Tap terdeteksi ($_tapCount kali)');
-              },
-              onLongPress: () {
-                setState(() => _longPressCount++);
-                _showSnack('Long press terdeteksi ($_longPressCount kali)');
-              },
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.touch_app,
-                      size: 40,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Tap atau Long Press di sini',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Tap: $_tapCount   •   Long Press: $_longPressCount',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            sectionTitle('C. Jenis-jenis Button Material'),
-            const SizedBox(height: 4),
-            hint(
-              'Elevated (menonjol), Outlined (garis tepi), Text (teks saja). '
-              'Semuanya punya efek ripple dan feedback Material.',
-            ),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _showSnack('ElevatedButton ditekan'),
-                    icon: const Icon(Icons.thumb_up, size: 18),
-                    label: const Text('ElevatedButton'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () => _showSnack('OutlinedButton ditekan'),
-                    icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('OutlinedButton'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: () => _showSnack('TextButton ditekan'),
-                    icon: const Icon(Icons.info_outline, size: 18),
-                    label: const Text('TextButton'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            sectionTitle('Kapan Pakai Apa?'),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  _RuleRow(
-                    icon: Icons.star,
-                    color: AppColors.primary,
-                    title: 'ElevatedButton',
-                    desc: 'Aksi utama (submit, save, konfirmasi)',
-                  ),
-                  Divider(height: 20),
-                  _RuleRow(
-                    icon: Icons.crop_square,
-                    color: AppColors.primary,
-                    title: 'OutlinedButton',
-                    desc: 'Aksi sekunder (batal, edit, alternatif)',
-                  ),
-                  Divider(height: 20),
-                  _RuleRow(
-                    icon: Icons.text_fields,
-                    color: AppColors.muted,
-                    title: 'TextButton',
-                    desc: 'Aksi tersier (link, "lihat selengkapnya")',
-                  ),
-                  Divider(height: 20),
-                  _RuleRow(
-                    icon: Icons.touch_app,
-                    color: AppColors.warn,
-                    title: 'InkWell',
-                    desc: 'Elemen Material yang perlu ripple + onTap',
-                  ),
-                  Divider(height: 20),
-                  _RuleRow(
-                    icon: Icons.gesture,
-                    color: AppColors.success,
-                    title: 'GestureDetector',
-                    desc: 'Gesture kustom (long press, drag, pan)',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RuleRow extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title, desc;
-  const _RuleRow({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.desc,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                desc,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class DetailPage extends StatelessWidget {
-  const DetailPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const IdentityCard(),
-
-            const SizedBox(height: 16),
-            sectionTitle('Detail Page'),
-            const SizedBox(height: 8),
-
-            AppCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.info_outline, color: AppColors.primary, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Halaman ini dibuka dengan Navigator.push()',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  hint(
-                    'Anda berada di DetailPage. Halaman ini ditambahkan ke '
-                    'navigation stack di atas MainShellPage.',
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  Text(
-                    studentName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'NIM: $studentId',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Kembali'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class CourseDetailPage extends StatelessWidget {
-  final Map<String, dynamic> course;
-  const CourseDetailPage({super.key, required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    final status = (course['status'] as String?) ?? 'planned';
-    final color = StatusHelper.color(status);
-    final title = (course['title'] as String?) ?? 'Tanpa Judul';
-    final code = (course['code'] as String?) ?? '-';
-    final credits = course['credits']?.toString() ?? '-';
-    final description = (course['description'] as String?) ?? 'Tidak ada deskripsi.';
-    final dosen = (course['dosen'] as String?) ?? '-';
-
-    return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              padding: const EdgeInsets.all(16),
-              borderColor: color.withValues(alpha: 0.4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(StatusHelper.icon(status), color: color, size: 28),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Text(
-                        '$code • $credits SKS',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const Spacer(),
-                      StatusHelper.badge(status),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            sectionTitle('Deskripsi'),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: const EdgeInsets.all(14),
-              child: Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            sectionTitle('Informasi Course'),
-            const SizedBox(height: 8),
-            AppCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  _infoRow(Icons.tag, 'Kode', code),
-                  const Divider(height: 20),
-                  _infoRow(Icons.credit_card, 'SKS', '$credits SKS'),
-                  const Divider(height: 20),
-                  _infoRow(Icons.person, 'Dosen', dosen),
-                  const Divider(height: 20),
-                  _infoRow(Icons.info_outline, 'Status',
-                      StatusHelper._of(status).$3),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            sectionTitle('Identitas Mahasiswa'),
-            const SizedBox(height: 8),
-            const IdentityCard(),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context, true),
-                icon: const Icon(Icons.star, size: 18),
-                label: const Text('Tandai Favorite & Kembali'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.warn,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-            AppCard(
-              borderColor: AppColors.primary.withValues(alpha: 0.3),
-              child: hint(
-                'Menekan tombol di atas akan memanggil '
-                'Navigator.pop(context, true).',
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.black54,
-          ),
-        ),
-        const Spacer(),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+// ===== TAHAP 1: HARD-CODED vs FLEKSIBEL =====
 
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
@@ -1716,13 +492,15 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
   }
 }
 
+// ===== TAHAP 2: MEDIAQUERY =====
+
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final orientation = MediaQuery.of(context).orientation;
+    final size = MediaQuery.sizeOf(context);
+    final orientation = MediaQuery.orientationOf(context);
     final compact = size.width < 600;
     final c = compact ? AppColors.warn : AppColors.success;
 
@@ -1744,7 +522,7 @@ class MediaQueryPage extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text('Height: ${size.height.toStringAsFixed(0)} px'),
                 const SizedBox(height: 6),
-                Text('Orientation: $orientation'),
+                Text('Orientation: ${orientation.name}'),
                 const SizedBox(height: 6),
                 Row(children: [
                   const Text('Kategori: '),
@@ -1760,10 +538,8 @@ class MediaQueryPage extends StatelessWidget {
                   ),
                 ]),
                 const Divider(height: 32),
-                const Text(studentName,
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const Text('NIM: $studentId',
-                    style: TextStyle(color: Colors.black54)),
+                const Text(studentName, style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('NIM: $studentId', style: TextStyle(color: Colors.black54)),
               ],
             ),
           ),
@@ -1772,6 +548,8 @@ class MediaQueryPage extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 3: LAYOUTBUILDER & BREAKPOINT =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -1792,9 +570,7 @@ class _LayoutCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(title,
                   style: TextStyle(
-                      fontSize: 16 + scale * 2,
-                      fontWeight: FontWeight.bold,
-                      color: color)),
+                      fontSize: 16 + scale * 2, fontWeight: FontWeight.bold, color: color)),
               const SizedBox(height: 4),
               hint(range),
               const Divider(height: 24),
@@ -1843,14 +619,15 @@ class BreakpointDemoPage extends StatelessWidget {
       );
 }
 
+// ===== TAHAP 4: EXPANDED, FLEXIBLE, WRAP =====
+
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
 
   Widget _panel(String text, Color color) => Container(
         height: 100,
         alignment: Alignment.center,
-        decoration:
-            BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
         child: Text(text,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1868,228 +645,188 @@ class FlexDemoPage extends StatelessWidget {
     ];
 
     return DemoScaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const IdentityCard(),
-          const SizedBox(height: 16),
-          sectionTitle('A. Expanded dengan Flex 2:1'),
-          const SizedBox(height: 4),
-          hint('Panel kiri mendapat 2/3 ruang, panel kanan 1/3.'),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(flex: 2, child: _panel('Panel A (flex: 2)', AppColors.primary)),
-            const SizedBox(width: 8),
-            Expanded(child: _panel('Panel B\n(flex: 1)', AppColors.success)),
-          ]),
-          const SizedBox(height: 24),
-          sectionTitle('B. Wrap dengan Chip Skill'),
-          const SizedBox(height: 4),
-          hint('Wrap memindahkan item ke baris berikutnya jika ruang tidak cukup.'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final s in skills)
-                Chip(avatar: Icon(s.$1, size: 16), label: Text(s.$2)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          sectionTitle('C. Perbandingan: Row Biasa'),
-          const SizedBox(height: 4),
-          hint('Row berisi item lebar tetap, dibungkus scroll horizontal agar tidak overflow.'),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.warn.withValues(alpha: 0.4)),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                for (var i = 1; i <= 6; i++)
-                  Container(
-                    width: 90,
-                    margin: const EdgeInsets.only(right: 6),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.warn.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.warn),
-                    ),
-                    child: Text('Item $i',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-              ]),
-            ),
-          ),
+      body: ScrollPage([
+        const IdentityCard(),
+        const SizedBox(height: 16),
+        sectionTitle('A. Expanded dengan Flex 2:1'),
+        const SizedBox(height: 4),
+        hint('Panel kiri mendapat 2/3 ruang, panel kanan 1/3.'),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(flex: 2, child: _panel('Panel A (flex: 2)', AppColors.primary)),
+          const SizedBox(width: 8),
+          Expanded(child: _panel('Panel B\n(flex: 1)', AppColors.success)),
         ]),
-      ),
+        const SizedBox(height: 24),
+        sectionTitle('B. Wrap dengan Chip Skill'),
+        const SizedBox(height: 4),
+        hint('Wrap memindahkan item ke baris berikutnya jika ruang tidak cukup.'),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final s in skills) Chip(avatar: Icon(s.$1, size: 16), label: Text(s.$2)),
+        ]),
+        const SizedBox(height: 24),
+        sectionTitle('C. Perbandingan: Row Biasa'),
+        const SizedBox(height: 4),
+        hint('Row berisi item lebar tetap, dibungkus scroll horizontal agar tidak overflow.'),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.warn.withValues(alpha: 0.4)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              for (var i = 1; i <= 6; i++)
+                Container(
+                  width: 90,
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.warn.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warn),
+                  ),
+                  child: Text('Item $i',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 }
 
+// ===== TAHAP 5, 8 & 9: GRIDVIEW RESPONSIF, DETAIL, FAVORITE =====
+
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
-class CourseGridPage extends StatefulWidget {
+/// Tahap 9: await push -> terima hasil pop(result) -> update favorite.
+Future<void> openCourse(BuildContext context, Map<String, dynamic> course) async {
+  final code = course['code']?.toString() ?? '';
+  final result = await Navigator.push<bool>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CourseDetailPage(
+          course: course, isFavorite: favorites.value.contains(code)),
+    ),
+  );
+  // null = tombol back biasa (tidak ada perubahan).
+  if (result == null || !context.mounted) return;
+  // Buat Set baru agar ValueNotifier memberi tahu pendengarnya.
+  favorites.value = result
+      ? {...favorites.value, code}
+      : ({...favorites.value}..remove(code));
+  showMsg(
+    context,
+    '${course['title'] ?? 'Course'} ${result ? 'ditandai sebagai favorite!' : 'dihapus dari favorite.'}',
+    color: result ? AppColors.success : AppColors.primary,
+  );
+}
+
+class CourseGridPage extends StatelessWidget {
+  /// true  = dibuka via Navigator.push (dibungkus Scaffold sendiri)
+  /// false = dipakai sebagai tab di dalam MainShellPage
   final bool standalone;
   const CourseGridPage({super.key, this.standalone = false});
 
   @override
-  State<CourseGridPage> createState() => _CourseGridPageState();
-}
-
-class _CourseGridPageState extends State<CourseGridPage> {
-  late final Future<Map<String, dynamic>> _future = loadStudentData();
-  final Set<String> _favorites = {};
-
-  @override
   Widget build(BuildContext context) {
     final content = FutureBuilder<Map<String, dynamic>>(
-      future: _future,
+      future: studentDataFuture,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snap.hasError) {
+        if (snap.hasError || snap.data == null) {
           return Center(
             child: Text('Gagal memuat data: ${snap.error}',
                 style: const TextStyle(color: Colors.red)),
           );
         }
         final data = snap.data!;
-        final s = data['student'] as Map<String, dynamic>;
-        final courses = (data['courses'] as List).cast<Map<String, dynamic>>();
+        final s = (data['student'] as Map<String, dynamic>?) ?? {};
+        final courses = ((data['courses'] as List?) ?? []).cast<Map<String, dynamic>>();
 
-        return LayoutBuilder(
-          builder: (context, c) => Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: IdentityCard(
-                name: s['name'] ?? studentName,
-                nim: s['nim'] ?? studentId,
-                subtitle: '${s['program'] ?? 'Mahasiswa'} • Semester ${s['semester'] ?? '-'}',
-              ),
-            ),
-            if (_favorites.isNotEmpty)
+        return ValueListenableBuilder<Set<String>>(
+          valueListenable: favorites,
+          builder: (context, favs, _) => LayoutBuilder(
+            builder: (context, c) => Column(children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                child: AppCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  borderColor: AppColors.warn.withValues(alpha: 0.4),
-                  child: Row(
-                    children: [
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: IdentityCard(
+                  name: s['name'] ?? studentName,
+                  nim: s['nim'] ?? studentId,
+                  subtitle: '${s['program'] ?? 'Mahasiswa'} • Semester ${s['semester'] ?? '-'}',
+                ),
+              ),
+              if (favs.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: AppCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    borderColor: AppColors.warn.withValues(alpha: 0.4),
+                    child: Row(children: [
                       const Icon(Icons.star, color: AppColors.warn, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          'Favorite: ${_favorites.join(', ')}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.warn,
-                          ),
-                        ),
+                        child: Text('Favorite: ${favs.join(', ')}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.warn)),
                       ),
-                    ],
+                    ]),
+                  ),
+                ),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columnsFor(c.maxWidth),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    mainAxisExtent: 170,
+                  ),
+                  itemCount: courses.length,
+                  itemBuilder: (_, i) => CourseCard(
+                    course: courses[i],
+                    isFavorite: favs.contains(courses[i]['code']?.toString() ?? ''),
+                    onTap: () => openCourse(context, courses[i]),
                   ),
                 ),
               ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columnsFor(c.maxWidth),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  mainAxisExtent: 170,
-                ),
-                itemCount: courses.length,
-                itemBuilder: (_, i) {
-                  final course = courses[i];
-                  final code = (course['code'] as String?) ?? '';
-                  return _TappableCourseCard(
-                    course: course,
-                    isFavorite: _favorites.contains(code),
-                    onResult: (result) {
-                      if (result == true) {
-                        setState(() {
-                          _favorites.add(code);
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${course['title'] ?? 'Course'} ditandai sebagai favorite!'),
-                            backgroundColor: AppColors.success,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    },
-                  );
-                },
-              ),
-            ),
-          ]),
-        );
-      },
-    );
-
-    if (widget.standalone) {
-      return DemoScaffold(body: content);
-    }
-    return content;
-  }
-}
-
-class _TappableCourseCard extends StatelessWidget {
-  final Map<String, dynamic> course;
-  final bool isFavorite;
-  final ValueChanged<bool?> onResult;
-
-  const _TappableCourseCard({
-    required this.course,
-    required this.isFavorite,
-    required this.onResult,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () async {
-        final result = await Navigator.push<bool>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CourseDetailPage(course: course),
+            ]),
           ),
         );
-        onResult(result);
       },
-      child: CourseCard(course: course, isFavorite: isFavorite),
     );
+
+    return standalone ? DemoScaffold(body: content) : content;
   }
 }
 
 class CourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
-  const CourseCard({super.key, required this.course, this.isFavorite = false});
+  final VoidCallback? onTap;
+  const CourseCard({super.key, required this.course, this.isFavorite = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final status = (course['status'] as String?) ?? 'planned';
+    final status = course['status']?.toString() ?? 'planned';
     final color = StatusHelper.color(status);
-    final desc = (course['description'] as String?) ?? '';
 
     return AppCard(
       padding: const EdgeInsets.all(12),
+      onTap: onTap,
       borderColor: isFavorite
           ? AppColors.warn.withValues(alpha: 0.6)
           : color.withValues(alpha: 0.25),
@@ -2098,20 +835,19 @@ class CourseCard extends StatelessWidget {
           Icon(StatusHelper.icon(status), color: color, size: 20),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(course['title'] ?? 'Tanpa Judul',
+            child: Text(course['title']?.toString() ?? 'Tanpa Judul',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ),
-          if (isFavorite)
-            const Icon(Icons.star, color: AppColors.warn, size: 18),
+          if (isFavorite) const Icon(Icons.star, color: AppColors.warn, size: 18),
         ]),
         const SizedBox(height: 4),
         Text('${course['code'] ?? '-'} • ${course['credits'] ?? '-'} SKS',
             style: const TextStyle(fontSize: 11, color: Colors.black54)),
         const SizedBox(height: 4),
         Expanded(
-          child: Text(desc,
+          child: Text(course['description']?.toString() ?? '',
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: Colors.black45, height: 1.3)),
@@ -2130,6 +866,90 @@ class CourseCard extends StatelessWidget {
     );
   }
 }
+
+class CourseDetailPage extends StatelessWidget {
+  final Map<String, dynamic> course;
+  final bool isFavorite;
+  const CourseDetailPage({super.key, required this.course, this.isFavorite = false});
+
+  @override
+  Widget build(BuildContext context) {
+    String f(String k, [String d = '-']) => course[k]?.toString() ?? d;
+    final status = f('status', 'planned');
+    final color = StatusHelper.color(status);
+    final credits = f('credits');
+
+    return DemoScaffold(
+      body: ScrollPage([
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          borderColor: color.withValues(alpha: 0.4),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(StatusHelper.icon(status), color: color, size: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(f('title', 'Tanpa Judul'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Row(children: [
+              Text('${f('code')} • $credits SKS',
+                  style: const TextStyle(fontSize: 13, color: Colors.black54)),
+              const Spacer(),
+              StatusHelper.badge(status),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        sectionTitle('Deskripsi'),
+        const SizedBox(height: 8),
+        AppCard(
+          child: Text(f('description', 'Tidak ada deskripsi.'),
+              style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87)),
+        ),
+        const SizedBox(height: 16),
+        sectionTitle('Informasi Course'),
+        const SizedBox(height: 8),
+        AppCard(
+          child: Column(children: [
+            InfoRow(Icons.tag, 'Kode', f('code')),
+            const Divider(height: 20),
+            InfoRow(Icons.credit_card, 'SKS', '$credits SKS'),
+            const Divider(height: 20),
+            InfoRow(Icons.person, 'Dosen', f('dosen')),
+            const Divider(height: 20),
+            InfoRow(Icons.info_outline, 'Status', StatusHelper.label(status)),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        sectionTitle('Identitas Mahasiswa'),
+        const SizedBox(height: 8),
+        const IdentityCard(),
+        const SizedBox(height: 16),
+        // Tahap 9: hasil dikirim balik lewat pop(context, nilai).
+        ElevatedButton.icon(
+          onPressed: () => Navigator.pop(context, !isFavorite),
+          icon: Icon(isFavorite ? Icons.star_border : Icons.star, size: 18),
+          label: Text(isFavorite
+              ? 'Hapus dari Favorite & Kembali'
+              : 'Tandai Favorite & Kembali'),
+          style: filled(isFavorite ? AppColors.muted : AppColors.warn),
+        ),
+        const SizedBox(height: 12),
+        AppCard(
+          borderColor: AppColors.primary.withValues(alpha: 0.3),
+          child: hint('Menekan tombol di atas memanggil Navigator.pop(context, ${!isFavorite}). '
+              'Tombol back biasa mengembalikan null (tidak ada perubahan).'),
+        ),
+      ]),
+    );
+  }
+}
+
+// ===== TAHAP 6: SCROLL & KEYBOARD =====
 
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});
@@ -2151,9 +971,7 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
         Icons.description_outlined, TextInputType.multiline, 3),
   ];
 
-  late final _controllers = [
-    for (final f in _fields) TextEditingController(text: f.$2),
-  ];
+  late final _controllers = [for (final f in _fields) TextEditingController(text: f.$2)];
 
   @override
   void dispose() {
@@ -2165,7 +983,7 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    final children = <Widget>[
       const IdentityCard(),
       const SizedBox(height: 16),
       sectionTitle('Form Profil Mahasiswa'),
@@ -2197,8 +1015,7 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
             'lalu ketuk field Bio untuk membuka keyboard dan amati apakah halaman '
             'masih bisa di-scroll.'),
       ),
-      const SizedBox(height: 24),
-    ]);
+    ];
 
     return DemoScaffold(
       actions: [
@@ -2211,18 +1028,539 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
           onChanged: (v) => setState(() => _useScroll = v),
         ),
       ],
+      // Scroll OFF sengaja tanpa scroll view agar overflow bisa diamati.
       body: _useScroll
-          ? SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                  16, 12, 16, 24 + MediaQuery.of(context).viewInsets.bottom),
-              child: content,
-            )
+          ? ScrollPage(children)
           : Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: content,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
             ),
     );
   }
+}
+
+// ===== TAHAP 7: Navigator.push() & pop() =====
+
+class DetailPage extends StatelessWidget {
+  const DetailPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => DemoScaffold(
+        body: ScrollPage([
+          const IdentityCard(),
+          const SizedBox(height: 16),
+          sectionTitle('Detail Page'),
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [
+                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Halaman ini dibuka dengan Navigator.push()',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppColors.primary)),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              hint('Anda berada di DetailPage. Halaman ini ditambahkan ke '
+                  'navigation stack di atas MainShellPage.'),
+              const Divider(height: 32),
+              const Text(studentName,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 4),
+              const Text('NIM: $studentId',
+                  style: TextStyle(fontSize: 13, color: Colors.black54)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('Kembali'),
+                style: filled(AppColors.primary, pad: 12),
+              ),
+            ]),
+          ),
+        ]),
+      );
+}
+
+// ===== TAHAP 12: INTERACTION (InkWell, GestureDetector, Button) =====
+
+class InteractionDemoPage extends StatefulWidget {
+  const InteractionDemoPage({super.key});
+
+  @override
+  State<InteractionDemoPage> createState() => _InteractionDemoPageState();
+}
+
+class _InteractionDemoPageState extends State<InteractionDemoPage> {
+  bool _favorite = false;
+  int _tap = 0, _longPress = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final favColor = _favorite ? AppColors.warn : AppColors.primary;
+
+    return DemoScaffold(
+      body: ScrollPage([
+        const IdentityCard(),
+        const SizedBox(height: 16),
+        sectionTitle('A. InkWell dengan Efek Ripple'),
+        const SizedBox(height: 4),
+        hint('InkWell memberi efek ripple Material saat ditekan.'),
+        const SizedBox(height: 8),
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          onTap: () {
+            setState(() => _favorite = !_favorite);
+            showMsg(context, _favorite ? 'Course ditandai favorite' : 'Favorite dibatalkan');
+          },
+          child: Row(children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _favorite ? AppColors.warn.withValues(alpha: 0.2) : AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.book_outlined, color: favColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Responsive Layout',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(_favorite ? 'Ditandai sebagai favorite' : 'Tap untuk menandai favorite',
+                    style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              ]),
+            ),
+            Icon(_favorite ? Icons.star : Icons.star_border,
+                color: _favorite ? AppColors.warn : AppColors.muted, size: 26),
+          ]),
+        ),
+        const SizedBox(height: 24),
+        sectionTitle('B. GestureDetector (Tap & Long Press)'),
+        const SizedBox(height: 4),
+        hint('GestureDetector mendeteksi gesture umum TANPA efek ripple Material.'),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () {
+            setState(() => _tap++);
+            showMsg(context, 'Tap terdeteksi ($_tap kali)');
+          },
+          onLongPress: () {
+            setState(() => _longPress++);
+            showMsg(context, 'Long press terdeteksi ($_longPress kali)');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Column(children: [
+              const Icon(Icons.touch_app, size: 40, color: AppColors.primary),
+              const SizedBox(height: 10),
+              const Text('Tap atau Long Press di sini',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary)),
+              const SizedBox(height: 6),
+              Text('Tap: $_tap   •   Long Press: $_longPress',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 24),
+        sectionTitle('C. Jenis-jenis Button Material'),
+        const SizedBox(height: 4),
+        hint('Elevated (menonjol), Outlined (garis tepi), Text (teks saja).'),
+        const SizedBox(height: 8),
+        AppCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            ElevatedButton.icon(
+              onPressed: () => showMsg(context, 'ElevatedButton ditekan'),
+              icon: const Icon(Icons.thumb_up, size: 18),
+              label: const Text('ElevatedButton'),
+              style: filled(AppColors.primary, pad: 12),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => showMsg(context, 'OutlinedButton ditekan'),
+              icon: const Icon(Icons.edit, size: 18),
+              label: const Text('OutlinedButton'),
+              style: outlined(AppColors.primary, pad: 12),
+            ),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: () => showMsg(context, 'TextButton ditekan'),
+              icon: const Icon(Icons.info_outline, size: 18),
+              label: const Text('TextButton'),
+              style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12)),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 24),
+        sectionTitle('Kapan Pakai Apa?'),
+        const SizedBox(height: 8),
+        ruleCard(const [
+          RuleRow(Icons.star, AppColors.primary, 'ElevatedButton',
+              'Aksi utama (submit, save, konfirmasi)'),
+          RuleRow(Icons.crop_square, AppColors.primary, 'OutlinedButton',
+              'Aksi sekunder (batal, edit, alternatif)'),
+          RuleRow(Icons.text_fields, AppColors.muted, 'TextButton',
+              'Aksi tersier (link, "lihat selengkapnya")'),
+          RuleRow(Icons.touch_app, AppColors.warn, 'InkWell',
+              'Elemen Material yang perlu ripple + onTap'),
+          RuleRow(Icons.gesture, AppColors.success, 'GestureDetector',
+              'Gesture kustom (long press, drag, pan)'),
+        ]),
+      ]),
+    );
+  }
+}
+
+// ===== TAHAP 13: FORM & VALIDASI =====
+
+class FeedbackFormPage extends StatefulWidget {
+  const FeedbackFormPage({super.key});
+
+  @override
+  State<FeedbackFormPage> createState() => _FeedbackFormPageState();
+}
+
+class _FeedbackFormPageState extends State<FeedbackFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  // Nama & NIM terisi default dari konstanta identitas.
+  final _name = TextEditingController(text: studentName);
+  final _nim = TextEditingController(text: studentId);
+  final _comment = TextEditingController();
+
+  bool _autoValidate = false;
+  ({String name, String nim, String comment})? _sent; // null = belum terkirim
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _nim.dispose();
+    _comment.dispose();
+    super.dispose();
+  }
+
+  String? _required(String? v, String label, int min) {
+    final t = v?.trim() ?? '';
+    if (t.isEmpty) return '$label wajib diisi';
+    if (t.length < min) return '$label minimal $min karakter';
+    return null;
+  }
+
+  String? _vName(String? v) => _required(v, 'Nama', 3);
+  String? _vComment(String? v) => _required(v, 'Komentar', 5);
+  String? _vNim(String? v) =>
+      _required(v, 'NIM', 5) ??
+      (RegExp(r'^\d+$').hasMatch(v!.trim()) ? null : 'NIM hanya boleh berisi angka');
+
+  void _submit() {
+    final ok = _formKey.currentState!.validate();
+    setState(() {
+      _autoValidate = true;
+      // Preview hanya muncul bila SEMUA field valid.
+      _sent = ok
+          ? (name: _name.text.trim(), nim: _nim.text.trim(), comment: _comment.text.trim())
+          : null;
+    });
+    if (ok) {
+      FocusScope.of(context).unfocus();
+      showMsg(context, 'Terima kasih, ${_name.text.trim()}! Feedback Anda sudah terkirim.',
+          color: AppColors.success);
+    } else {
+      showMsg(context, 'Mohon periksa kembali field yang bertanda merah.', color: Colors.red);
+    }
+  }
+
+  void _reset() {
+    _formKey.currentState?.reset();
+    _name.text = studentName;
+    _nim.text = studentId;
+    _comment.clear();
+    setState(() {
+      _autoValidate = false;
+      _sent = null;
+    });
+  }
+
+  Widget _field(TextEditingController c, String label, IconData icon,
+          String? Function(String?) validator,
+          {TextInputType? type, int lines = 1, String? hintText, bool last = false}) =>
+      TextFormField(
+        controller: c,
+        keyboardType: type,
+        maxLines: lines,
+        validator: validator,
+        textInputAction: last ? TextInputAction.newline : TextInputAction.next,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+          alignLabelWithHint: lines > 1,
+          isDense: true,
+          prefixIcon: Icon(icon, size: 20),
+          border: const OutlineInputBorder(),
+        ),
+      );
+
+  Widget _previewRow(String label, String value) => Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+              width: 80,
+              child: Text(label,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54))),
+          Expanded(
+            child: Text(value.isEmpty ? '-' : value,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87)),
+          ),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) => DemoScaffold(
+        body: ScrollPage([
+          Form(
+            key: _formKey,
+            autovalidateMode: _autoValidate
+                ? AutovalidateMode.onUserInteraction
+                : AutovalidateMode.disabled,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const IdentityCard(),
+              const SizedBox(height: 16),
+              sectionTitle('Form Feedback'),
+              const SizedBox(height: 4),
+              hint('Semua field wajib diisi. Nama minimal 3 karakter, NIM hanya '
+                  'angka, dan komentar minimal 5 karakter.'),
+              const SizedBox(height: 12),
+              AppCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(children: [
+                  _field(_name, 'Nama Lengkap', Icons.person_outline, _vName),
+                  const SizedBox(height: 12),
+                  _field(_nim, 'NIM', Icons.badge_outlined, _vNim, type: TextInputType.number),
+                  const SizedBox(height: 12),
+                  _field(_comment, 'Komentar', Icons.description_outlined, _vComment,
+                      lines: 4, hintText: 'Tulis feedback Anda (min. 5 karakter)', last: true),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _reset,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Reset'),
+                    style: outlined(AppColors.primary, pad: 12),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _submit,
+                    icon: const Icon(Icons.send, size: 18),
+                    label: const Text('Kirim Feedback'),
+                    style: filled(AppColors.primary, pad: 12),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+          if (_sent != null) ...[
+            const SizedBox(height: 16),
+            AppCard(
+              borderColor: AppColors.success.withValues(alpha: 0.4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                  SizedBox(width: 8),
+                  Text('Data Terkirim',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.success)),
+                ]),
+                const SizedBox(height: 10),
+                _previewRow('Nama', _sent!.name),
+                _previewRow('NIM', _sent!.nim),
+                _previewRow('Komentar', _sent!.comment),
+              ]),
+            ),
+          ],
+          const SizedBox(height: 16),
+          AppCard(
+            borderColor: AppColors.primary.withValues(alpha: 0.3),
+            child: hint('Form + GlobalKey<FormState> memvalidasi semua field sekaligus '
+                'lewat _formKey.currentState!.validate(). Tiap TextFormField punya validator sendiri.'),
+          ),
+        ]),
+      );
+}
+
+// ===== TAHAP 14: SNACKBAR, DIALOG, LOADING =====
+
+class FeedbackDemoPage extends StatefulWidget {
+  const FeedbackDemoPage({super.key});
+
+  @override
+  State<FeedbackDemoPage> createState() => _FeedbackDemoPageState();
+}
+
+class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
+  String _last = '-';
+
+  void _snack() {
+    setState(() => _last = 'SnackBar ditampilkan');
+    showMsg(
+      context,
+      'Data berhasil disimpan.',
+      color: AppColors.success,
+      action: SnackBarAction(
+        label: 'Lihat',
+        textColor: Colors.white,
+        onPressed: () => showMsg(context, 'Aksi "Lihat" dipilih.'),
+      ),
+    );
+  }
+
+  Future<void> _confirm() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: const Text(
+            'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak bisa dibatalkan.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final yes = ok == true;
+    setState(() => _last = yes ? 'Data dihapus (dikonfirmasi)' : 'Penghapusan dibatalkan');
+    showMsg(context, yes ? 'Data berhasil dihapus.' : 'Penghapusan dibatalkan.',
+        color: yes ? Colors.red : AppColors.primary);
+  }
+
+  Future<void> _loading() async {
+    setState(() => _last = 'Loading...');
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      // PopScope: tombol back tidak menutup dialog lebih awal (kalau tidak,
+      // pop() di bawah akan ikut menutup halaman ini).
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: AppCard(
+            padding: EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Memuat data...', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Mohon tunggu sebentar',
+                  style: TextStyle(fontSize: 12, color: Colors.black54)),
+            ]),
+          ),
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pop();
+    setState(() => _last = 'Data berhasil dimuat');
+    showMsg(context, 'Data berhasil dimuat.', color: AppColors.success);
+  }
+
+  @override
+  Widget build(BuildContext context) => DemoScaffold(
+        body: ScrollPage([
+          const IdentityCard(),
+          const SizedBox(height: 16),
+          sectionTitle('Umpan Balik ke Pengguna'),
+          const SizedBox(height: 4),
+          hint('SnackBar untuk feedback singkat, AlertDialog untuk konfirmasi, '
+              'dan CircularProgressIndicator untuk loading.'),
+          const SizedBox(height: 12),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              ElevatedButton.icon(
+                onPressed: _snack,
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text('Simpan Data (SnackBar)'),
+                style: filled(AppColors.primary),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _confirm,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Hapus Data (Dialog)'),
+                style: outlined(Colors.red),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: _loading,
+                icon: const Icon(Icons.download, size: 18),
+                label: const Text('Muat Data (Loading)'),
+                style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            borderColor: AppColors.primary.withValues(alpha: 0.3),
+            child: Row(children: [
+              const Icon(Icons.history, color: AppColors.primary, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Aksi terakhir:',
+                      style: TextStyle(fontSize: 12, color: Colors.black54)),
+                  const SizedBox(height: 2),
+                  Text(_last,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 24),
+          sectionTitle('Kapan Pakai Apa?'),
+          const SizedBox(height: 8),
+          ruleCard(const [
+            RuleRow(Icons.notifications_active, AppColors.success, 'SnackBar',
+                'Feedback singkat, tidak memblokir. Contoh: "Data tersimpan", "Berhasil login".'),
+            RuleRow(Icons.help_outline, AppColors.warn, 'AlertDialog',
+                'Konfirmasi/perhatian, memblokir sampai user respon. Contoh: "Yakin hapus?".'),
+            RuleRow(Icons.hourglass_top, AppColors.primary, 'Loading Indicator',
+                'Operasi yang butuh waktu. Contoh: "Memuat data...", "Mengirim...".'),
+          ]),
+        ]),
+      );
 }
 
 // ===== APP =====
@@ -2233,7 +1571,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Worksheet Pertemuan 5',
+        title: appTitle,
         theme: ThemeData(
           scaffoldBackgroundColor: AppColors.bg,
           colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
