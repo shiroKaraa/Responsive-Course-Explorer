@@ -1,16 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show rootBundle, Clipboard, ClipboardData;
+import 'quiz_data.dart';
 
 // ===== IDENTITAS =====
 const String studentName = 'I Kadek Dwi Bajaskara';
 const String studentId = '2415051068';
-const String appTitle = 'Worksheet Pertemuan 5';
+const String appTitle = 'Responsive Course Explorer';
 
 class AppColors {
-  static const primary = Color(0xFF1565C0);
+  static const primary = Color(0xFF1565C0); // biru kampus — dominan
   static const primarySoft = Color(0xFFE3F0FC);
-  static const success = Color(0xFF2E7D32);
+  static const success = Color(0xFF2E7D32); // hijau — aksen
+  static const successSoft = Color(0xFFE6F4EA);
   static const warn = Color(0xFFEF6C00);
   static const muted = Color(0xFF607D8B);
   static const bg = Color(0xFFF5F8FC);
@@ -19,13 +21,13 @@ class AppColors {
 
 // ===== DATA & STATE BERSAMA =====
 
-// Top-level variable bersifat lazy: JSON hanya dibaca sekali lalu dipakai ulang.
 final Future<Map<String, dynamic>> studentDataFuture = rootBundle
     .loadString('assets/data/student_data.json')
     .then((s) => jsonDecode(s) as Map<String, dynamic>);
 
-// Favorite dipakai bersama oleh tab Courses, halaman standalone, dan Profile.
 final ValueNotifier<Set<String>> favorites = ValueNotifier(<String>{});
+final ValueNotifier<int?> quizScore = ValueNotifier<int?>(null);
+final ValueNotifier<String> courseFilter = ValueNotifier<String>('all');
 
 // ===== HELPER =====
 
@@ -67,8 +69,6 @@ Widget hint(String t) =>
 
 // ===== REUSABLE WIDGET =====
 
-/// Kartu dasar. Material transparan di dalamnya membuat ripple InkWell
-/// tampil DI ATAS warna kartu (kalau tidak, ripple tertutup warna putih).
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
@@ -126,7 +126,6 @@ class DemoScaffold extends StatelessWidget {
       );
 }
 
-/// Halaman scroll standar (Tahap 6): padding bawah ikut tinggi keyboard.
 class ScrollPage extends StatelessWidget {
   final List<Widget> children;
   const ScrollPage(this.children, {super.key});
@@ -193,6 +192,12 @@ class StatusHelper {
   static IconData icon(String s) => _of(s).$2;
   static String label(String s) => _of(s).$3;
 
+  static double progressOf(String s) {
+    if (s == 'done') return 1.0;
+    if (s == 'active') return 0.5;
+    return 0.0;
+  }
+
   static Widget badge(String s) {
     final c = color(s);
     return Container(
@@ -207,7 +212,6 @@ class StatusHelper {
   }
 }
 
-/// Baris "ikon - label ..... nilai" (dipakai Profile & Course Detail).
 class InfoRow extends StatelessWidget {
   final IconData icon;
   final String label, value;
@@ -229,7 +233,6 @@ class InfoRow extends StatelessWidget {
       ]);
 }
 
-/// Baris "ikon + judul + deskripsi" (panduan "Kapan Pakai Apa?").
 class RuleRow extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -264,6 +267,308 @@ Widget ruleCard(List<RuleRow> rows) => AppCard(
       ]),
     );
 
+// ===== TAHAP 15: MINI QUIZ (dari Tahap 6.5, dengan skor global) =====
+
+class MiniQuizCard extends StatefulWidget {
+  const MiniQuizCard({super.key});
+
+  @override
+  State<MiniQuizCard> createState() => _MiniQuizCardState();
+}
+
+class _MiniQuizCardState extends State<MiniQuizCard> {
+  int _index = 0;
+  String? _selected;
+  int _score = 0;
+  bool _finished = false;
+
+  void _pilih(String opsi) {
+    if (_selected != null) return;
+    setState(() {
+      _selected = opsi;
+      if (opsi == quizQuestions[_index]['answer']) _score++;
+    });
+  }
+
+  void _next() {
+    setState(() {
+      if (_index < quizQuestions.length - 1) {
+        _index++;
+        _selected = null;
+      } else {
+        _finished = true;
+        quizScore.value = _score;
+      }
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _index = 0;
+      _selected = null;
+      _score = 0;
+      _finished = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = quizQuestions.length;
+    if (total == 0) {
+      return AppCard(
+        borderColor: AppColors.primary.withValues(alpha: 0.3),
+        child: hint('Belum ada soal pada quiz_data.dart.'),
+      );
+    }
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      borderColor: AppColors.primary.withValues(alpha: 0.3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.quiz_outlined,
+                  color: AppColors.success, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Mini Quiz',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                _finished ? 'Selesai' : 'Soal ${_index + 1}/$total',
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_finished) _buildHasil(total) else _buildSoal(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSoal() {
+    final item = quizQuestions[_index];
+    final options = (item['options'] as List).cast<String>();
+    final answer = item['answer'] as String;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          item['q'] as String,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...options.map((opsi) {
+          final isSelected = _selected == opsi;
+          final isCorrect = opsi == answer;
+          final show = _selected != null;
+
+          Color border = AppColors.border;
+          Color bg = Colors.white;
+          if (show && isCorrect) {
+            border = AppColors.success;
+            bg = AppColors.successSoft;
+          } else if (show && isSelected && !isCorrect) {
+            border = Colors.red.shade400;
+            bg = const Color(0xFFFFEBEE);
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () => _pilih(opsi),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      show && isCorrect
+                          ? Icons.check_circle
+                          : (show && isSelected
+                              ? Icons.cancel
+                              : Icons.radio_button_unchecked),
+                      size: 18,
+                      color: show && isCorrect
+                          ? AppColors.success
+                          : (show && isSelected
+                              ? Colors.red.shade400
+                              : AppColors.muted),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(opsi,
+                          style: const TextStyle(fontSize: 13)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        if (_selected != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _next,
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              label: Text(
+                _index < quizQuestions.length - 1
+                    ? 'Soal Berikutnya'
+                    : 'Lihat Skor',
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildHasil(int total) {
+    final persen = (_score / total * 100).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Skor kamu: $_score / $total',
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: AppColors.success,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('Nilai: $persen',
+            style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          onPressed: _reset,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Ulangi Quiz'),
+          style: filled(AppColors.success),
+        ),
+      ],
+    );
+  }
+}
+
+// ===== TAHAP 15: FAVORITE SECTION (Home) =====
+
+class FavoriteSectionCard extends StatelessWidget {
+  const FavoriteSectionCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: favorites,
+      builder: (context, favs, _) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: studentDataFuture,
+          builder: (context, snap) {
+            final courses = ((snap.data?['courses'] as List?) ?? [])
+                .cast<Map<String, dynamic>>();
+            final favCourses = courses
+                .where((c) => favs.contains(c['code']?.toString() ?? ''))
+                .toList();
+
+            return AppCard(
+              padding: const EdgeInsets.all(14),
+              borderColor: AppColors.success.withValues(alpha: 0.35),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.star,
+                          color: AppColors.success, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Course Favorite',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${favCourses.length}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (favCourses.isEmpty)
+                    hint('Belum ada course favorite. '
+                        'Tap ikon ⭐ di halaman detail course.')
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final c in favCourses)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () =>
+                                  go(context, CourseDetailPage(course: c, isFavorite: true)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 4),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.bookmark,
+                                        size: 16, color: AppColors.success),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        c['title']?.toString() ?? 'Tanpa Judul',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right,
+                                        size: 18, color: AppColors.muted),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 // ===== TAHAP 10 & 11: MAIN SHELL (NavigationBar <-> NavigationRail) =====
 
 class MainShellPage extends StatefulWidget {
@@ -276,9 +581,12 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _index = 0;
 
-  static const _pages = <Widget>[_HomeTabPage(), CourseGridPage(), _ProfileTabPage()];
+  static const _pages = <Widget>[
+    _HomeTabPage(),
+    CourseGridPage(),
+    _ProfileTabPage(),
+  ];
 
-  // Satu daftar destinasi dipakai oleh NavigationBar maupun NavigationRail.
   static const _dest = <(IconData, IconData, String)>[
     (Icons.home_outlined, Icons.home, 'Home'),
     (Icons.school_outlined, Icons.school, 'Courses'),
@@ -290,8 +598,6 @@ class _MainShellPageState extends State<MainShellPage> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
         final wide = c.maxWidth >= 840;
-        // Satu Scaffold + key pada konten: halaman aktif & state-nya tidak
-        // hilang saat layout berpindah antara compact dan expanded.
         return DemoScaffold(
           bottomNavigationBar: wide
               ? null
@@ -360,6 +666,10 @@ class _HomeTabPage extends StatelessWidget {
       children: [
         const IdentityCard(),
         const SizedBox(height: 16),
+        const MiniQuizCard(),
+        const SizedBox(height: 12),
+        const FavoriteSectionCard(),
+        const SizedBox(height: 16),
         sectionTitle('Menu Tahapan'),
         const SizedBox(height: 8),
         for (final m in menu)
@@ -380,21 +690,25 @@ class _HomeTabPage extends StatelessWidget {
   }
 }
 
+// ===== TAHAP 15: TAB PROFILE (diperluas) =====
+
 class _StatTile extends StatelessWidget {
   final IconData icon;
   final String label, value;
-  const _StatTile(this.icon, this.label, this.value);
+  final Color color;
+  const _StatTile(this.icon, this.label, this.value,
+      {this.color = AppColors.primary});
 
   @override
   Widget build(BuildContext context) => Expanded(
         child: AppCard(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           child: Column(children: [
-            Icon(icon, color: AppColors.primary, size: 22),
+            Icon(icon, color: color, size: 22),
             const SizedBox(height: 6),
             Text(value,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: color)),
             const SizedBox(height: 2),
             Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
           ]),
@@ -409,17 +723,28 @@ class _ProfileTabPage extends StatelessWidget {
   Widget build(BuildContext context) => ScrollPage([
         const IdentityCard(subtitle: 'Pendidikan Teknik Informatika • Semester 5'),
         const SizedBox(height: 16),
+
+        // Stats: Topik / Favorite / Quiz Score
         ValueListenableBuilder<Set<String>>(
           valueListenable: favorites,
           builder: (_, favs, __) => Row(children: [
             const _StatTile(Icons.book_outlined, 'Topik', '5'),
             const SizedBox(width: 10),
-            _StatTile(Icons.star_outline, 'Favorite', '${favs.length}'),
+            _StatTile(Icons.star_outline, 'Favorite', '${favs.length}',
+                color: AppColors.success),
             const SizedBox(width: 10),
-            const _StatTile(Icons.trending_up, 'Progress', '20%'),
+            ValueListenableBuilder<int?>(
+              valueListenable: quizScore,
+              builder: (_, s, __) => _StatTile(
+                  Icons.emoji_events_outlined,
+                  'Quiz',
+                  s == null ? '-' : '$s',
+                  color: AppColors.warn),
+            ),
           ]),
         ),
         const SizedBox(height: 16),
+
         sectionTitle('Informasi Mahasiswa'),
         const SizedBox(height: 8),
         const AppCard(
@@ -429,24 +754,45 @@ class _ProfileTabPage extends StatelessWidget {
             Divider(height: 20),
             InfoRow(Icons.badge_outlined, 'NIM', studentId),
             Divider(height: 20),
-            InfoRow(Icons.school_outlined, 'Program Studi', 'Pendidikan Teknik Informatika'),
+            InfoRow(Icons.school_outlined, 'Program Studi',
+                'Pendidikan Teknik Informatika'),
             Divider(height: 20),
             InfoRow(Icons.calendar_today_outlined, 'Semester', '5'),
           ]),
         ),
         const SizedBox(height: 16),
-        sectionTitle('Tentang Aplikasi'),
+
+        sectionTitle('About Me'),
+        const SizedBox(height: 8),
+        AppCard(
+          child: hint(
+            'Mahasiswa Pendidikan Teknik Informatika yang antusias belajar '
+            'Flutter dan pengembangan aplikasi mobile. Senang membangun UI '
+            'yang rapi, responsif, dan ramah pengguna.',
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        sectionTitle('About Application'),
         const SizedBox(height: 8),
         AppCard(
           borderColor: AppColors.primary.withValues(alpha: 0.3),
-          child: hint('Aplikasi ini adalah hasil praktikum Worksheet Pertemuan 5: '
-              'Responsive Layout, Navigation & User Interaction. '
-              'Nama dan NIM ditampilkan pada setiap tahap sebagai bukti identitas.'),
+          child: hint(
+            'Responsive Course Explorer — dibuat untuk memenuhi Worksheet '
+            'Pertemuan 5: Responsive Layout, Navigation & User Interaction. '
+            'Dibangun dengan Flutter, tanpa package tambahan, dengan '
+            'mempertahankan kesinambungan project dari Pertemuan 4.',
+          ),
         ),
+        const SizedBox(height: 16),
+
+        sectionTitle('Daftar Favorite'),
+        const SizedBox(height: 8),
+        const FavoriteSectionCard(),
       ]);
 }
 
-// ===== TAHAP 1: HARD-CODED vs FLEKSIBEL =====
+// ===== TAHAP 1 =====
 
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
@@ -492,7 +838,7 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
   }
 }
 
-// ===== TAHAP 2: MEDIAQUERY =====
+// ===== TAHAP 2 =====
 
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
@@ -549,7 +895,7 @@ class MediaQueryPage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 3: LAYOUTBUILDER & BREAKPOINT =====
+// ===== TAHAP 3 =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -619,7 +965,7 @@ class BreakpointDemoPage extends StatelessWidget {
       );
 }
 
-// ===== TAHAP 4: EXPANDED, FLEXIBLE, WRAP =====
+// ===== TAHAP 4 =====
 
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
@@ -702,23 +1048,20 @@ class FlexDemoPage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 5, 8 & 9: GRIDVIEW RESPONSIF, DETAIL, FAVORITE =====
+// ===== TAHAP 5, 8 & 9: GRID, DETAIL, FAVORITE =====
 
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
-/// Tahap 9: await push -> terima hasil pop(result) -> update favorite.
 Future<void> openCourse(BuildContext context, Map<String, dynamic> course) async {
   final code = course['code']?.toString() ?? '';
+  final wasFav = favorites.value.contains(code);
   final result = await Navigator.push<bool>(
     context,
     MaterialPageRoute(
-      builder: (_) => CourseDetailPage(
-          course: course, isFavorite: favorites.value.contains(code)),
+      builder: (_) => CourseDetailPage(course: course, isFavorite: wasFav),
     ),
   );
-  // null = tombol back biasa (tidak ada perubahan).
   if (result == null || !context.mounted) return;
-  // Buat Set baru agar ValueNotifier memberi tahu pendengarnya.
   favorites.value = result
       ? {...favorites.value, code}
       : ({...favorites.value}..remove(code));
@@ -729,9 +1072,52 @@ Future<void> openCourse(BuildContext context, Map<String, dynamic> course) async
   );
 }
 
+Future<void> _confirmRemoveFavorite(
+    BuildContext context, Map<String, dynamic> course) async {
+  final code = course['code']?.toString() ?? '';
+  if (!favorites.value.contains(code)) return;
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Hapus Favorite?'),
+      content: Text(
+          'Hapus "${course['title'] ?? 'Course'}" dari daftar favorite?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Batal'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, foregroundColor: Colors.white),
+          child: const Text('Hapus'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+
+  favorites.value = {...favorites.value}..remove(code);
+  showMsg(context, 'Dihapus dari favorite.', color: Colors.red);
+}
+
+class _FilterChipData {
+  final String key, label;
+  final IconData icon;
+  const _FilterChipData(this.key, this.label, this.icon);
+}
+
+const _filterOptions = <_FilterChipData>[
+  _FilterChipData('all', 'Semua', Icons.apps),
+  _FilterChipData('done', 'Selesai', Icons.check_circle),
+  _FilterChipData('active', 'Berjalan', Icons.play_circle),
+  _FilterChipData('planned', 'Belum', Icons.schedule),
+  _FilterChipData('favorite', 'Favorite', Icons.star),
+];
+
 class CourseGridPage extends StatelessWidget {
-  /// true  = dibuka via Navigator.push (dibungkus Scaffold sendiri)
-  /// false = dipakai sebagai tab di dalam MainShellPage
   final bool standalone;
   const CourseGridPage({super.key, this.standalone = false});
 
@@ -751,61 +1137,90 @@ class CourseGridPage extends StatelessWidget {
         }
         final data = snap.data!;
         final s = (data['student'] as Map<String, dynamic>?) ?? {};
-        final courses = ((data['courses'] as List?) ?? []).cast<Map<String, dynamic>>();
+        final courses = ((data['courses'] as List?) ?? [])
+            .cast<Map<String, dynamic>>();
 
-        return ValueListenableBuilder<Set<String>>(
-          valueListenable: favorites,
-          builder: (context, favs, _) => LayoutBuilder(
-            builder: (context, c) => Column(children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: IdentityCard(
-                  name: s['name'] ?? studentName,
-                  nim: s['nim'] ?? studentId,
-                  subtitle: '${s['program'] ?? 'Mahasiswa'} • Semester ${s['semester'] ?? '-'}',
-                ),
-              ),
-              if (favs.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  child: AppCard(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    borderColor: AppColors.warn.withValues(alpha: 0.4),
-                    child: Row(children: [
-                      const Icon(Icons.star, color: AppColors.warn, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text('Favorite: ${favs.join(', ')}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.warn)),
-                      ),
-                    ]),
-                  ),
-                ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columnsFor(c.maxWidth),
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    mainAxisExtent: 170,
-                  ),
-                  itemCount: courses.length,
-                  itemBuilder: (_, i) => CourseCard(
-                    course: courses[i],
-                    isFavorite: favs.contains(courses[i]['code']?.toString() ?? ''),
-                    onTap: () => openCourse(context, courses[i]),
-                  ),
-                ),
-              ),
-            ]),
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: IdentityCard(
+              name: s['name'] ?? studentName,
+              nim: s['nim'] ?? studentId,
+              subtitle:
+                  '${s['program'] ?? 'Mahasiswa'} • Semester ${s['semester'] ?? '-'}',
+            ),
           ),
-        );
+          _FilterBar(favorites: favorites, filter: courseFilter),
+          Expanded(
+            child: ValueListenableBuilder<Set<String>>(
+              valueListenable: favorites,
+              builder: (_, favs, __) =>
+                  ValueListenableBuilder<String>(
+                valueListenable: courseFilter,
+                builder: (_, filter, __) {
+                  final filtered = courses.where((c) {
+                    final code = c['code']?.toString() ?? '';
+                    final st = c['status']?.toString() ?? 'planned';
+                    switch (filter) {
+                      case 'done':
+                        return st == 'done';
+                      case 'active':
+                        return st == 'active';
+                      case 'planned':
+                        return st == 'planned';
+                      case 'favorite':
+                        return favs.contains(code);
+                      default:
+                        return true;
+                    }
+                  }).toList();
+
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.filter_alt_off,
+                                size: 48, color: AppColors.muted),
+                            const SizedBox(height: 10),
+                            hint('Tidak ada course dengan filter ini.'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return LayoutBuilder(
+                    builder: (context, c) => GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columnsFor(c.maxWidth),
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        mainAxisExtent: 170,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final course = filtered[i];
+                        final code = course['code']?.toString() ?? '';
+                        final isFav = favs.contains(code);
+                        return CourseCard(
+                          course: course,
+                          isFavorite: isFav,
+                          onTap: () => openCourse(context, course),
+                          onLongPress: () =>
+                              _confirmRemoveFavorite(context, course),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ]);
       },
     );
 
@@ -813,11 +1228,68 @@ class CourseGridPage extends StatelessWidget {
   }
 }
 
+class _FilterBar extends StatelessWidget {
+  final ValueNotifier<Set<String>> favorites;
+  final ValueNotifier<String> filter;
+  const _FilterBar({required this.favorites, required this.filter});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: filter,
+      builder: (_, active, __) => SizedBox(
+        height: 44,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          itemCount: _filterOptions.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) {
+            final opt = _filterOptions[i];
+            final selected = active == opt.key;
+            return ChoiceChip(
+              selected: selected,
+              onSelected: (_) => filter.value = opt.key,
+              avatar: Icon(
+                opt.icon,
+                size: 16,
+                color: selected ? Colors.white : AppColors.primary,
+              ),
+              label: Text(opt.label),
+              labelStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.black87,
+              ),
+              selectedColor: AppColors.primary,
+              backgroundColor: Colors.white,
+              side: BorderSide(
+                color: selected
+                    ? AppColors.primary
+                    : AppColors.border,
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class CourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
   final VoidCallback? onTap;
-  const CourseCard({super.key, required this.course, this.isFavorite = false, this.onTap});
+  final VoidCallback? onLongPress;
+  const CourseCard({
+    super.key,
+    required this.course,
+    this.isFavorite = false,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -827,8 +1299,9 @@ class CourseCard extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(12),
       onTap: onTap,
+      onLongPress: onLongPress,
       borderColor: isFavorite
-          ? AppColors.warn.withValues(alpha: 0.6)
+          ? AppColors.success.withValues(alpha: 0.6)
           : color.withValues(alpha: 0.25),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -840,7 +1313,8 @@ class CourseCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ),
-          if (isFavorite) const Icon(Icons.star, color: AppColors.warn, size: 18),
+          if (isFavorite)
+            const Icon(Icons.star, color: AppColors.success, size: 18),
         ]),
         const SizedBox(height: 4),
         Text('${course['code'] ?? '-'} • ${course['credits'] ?? '-'} SKS',
@@ -870,7 +1344,11 @@ class CourseCard extends StatelessWidget {
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
-  const CourseDetailPage({super.key, required this.course, this.isFavorite = false});
+  const CourseDetailPage({
+    super.key,
+    required this.course,
+    this.isFavorite = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -878,6 +1356,8 @@ class CourseDetailPage extends StatelessWidget {
     final status = f('status', 'planned');
     final color = StatusHelper.color(status);
     final credits = f('credits');
+    final progress = StatusHelper.progressOf(status);
+    final code = f('code');
 
     return DemoScaffold(
       body: ScrollPage([
@@ -896,10 +1376,32 @@ class CourseDetailPage extends StatelessWidget {
             ]),
             const SizedBox(height: 10),
             Row(children: [
-              Text('${f('code')} • $credits SKS',
+              Text('$code • $credits SKS',
                   style: const TextStyle(fontSize: 13, color: Colors.black54)),
               const Spacer(),
               StatusHelper.badge(status),
+            ]),
+            const SizedBox(height: 14),
+            // Progress bar (Tahap 15): hijau, sesuai aksen.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: AppColors.border,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.success,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.trending_up, size: 14, color: AppColors.success),
+              const SizedBox(width: 6),
+              Text('Progress: ${(progress * 100).round()}%',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.success,
+                      fontWeight: FontWeight.w600)),
             ]),
           ]),
         ),
@@ -915,7 +1417,7 @@ class CourseDetailPage extends StatelessWidget {
         const SizedBox(height: 8),
         AppCard(
           child: Column(children: [
-            InfoRow(Icons.tag, 'Kode', f('code')),
+            InfoRow(Icons.tag, 'Kode', code),
             const Divider(height: 20),
             InfoRow(Icons.credit_card, 'SKS', '$credits SKS'),
             const Divider(height: 20),
@@ -929,19 +1431,35 @@ class CourseDetailPage extends StatelessWidget {
         const SizedBox(height: 8),
         const IdentityCard(),
         const SizedBox(height: 16),
-        // Tahap 9: hasil dikirim balik lewat pop(context, nilai).
+
+        // Tombol Salin Kode Course
+        OutlinedButton.icon(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: code));
+            if (!context.mounted) return;
+            showMsg(context, 'Kode course "$code" disalin.',
+                color: AppColors.primary);
+          },
+          icon: const Icon(Icons.copy, size: 18),
+          label: const Text('Salin Kode Course'),
+          style: outlined(AppColors.primary),
+        ),
+        const SizedBox(height: 10),
+
+        // Favorite toggle & pop
         ElevatedButton.icon(
           onPressed: () => Navigator.pop(context, !isFavorite),
           icon: Icon(isFavorite ? Icons.star_border : Icons.star, size: 18),
           label: Text(isFavorite
               ? 'Hapus dari Favorite & Kembali'
               : 'Tandai Favorite & Kembali'),
-          style: filled(isFavorite ? AppColors.muted : AppColors.warn),
+          style: filled(isFavorite ? AppColors.muted : AppColors.success),
         ),
         const SizedBox(height: 12),
         AppCard(
           borderColor: AppColors.primary.withValues(alpha: 0.3),
-          child: hint('Menekan tombol di atas memanggil Navigator.pop(context, ${!isFavorite}). '
+          child: hint(
+              'Menekan tombol di atas memanggil Navigator.pop(context, ${!isFavorite}). '
               'Tombol back biasa mengembalikan null (tidak ada perubahan).'),
         ),
       ]),
@@ -949,7 +1467,7 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 6: SCROLL & KEYBOARD =====
+// ===== TAHAP 6 =====
 
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});
@@ -1028,7 +1546,6 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
           onChanged: (v) => setState(() => _useScroll = v),
         ),
       ],
-      // Scroll OFF sengaja tanpa scroll view agar overflow bisa diamati.
       body: _useScroll
           ? ScrollPage(children)
           : Padding(
@@ -1039,7 +1556,7 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
   }
 }
 
-// ===== TAHAP 7: Navigator.push() & pop() =====
+// ===== TAHAP 7 =====
 
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
@@ -1087,7 +1604,7 @@ class DetailPage extends StatelessWidget {
       );
 }
 
-// ===== TAHAP 12: INTERACTION (InkWell, GestureDetector, Button) =====
+// ===== TAHAP 12 =====
 
 class InteractionDemoPage extends StatefulWidget {
   const InteractionDemoPage({super.key});
@@ -1102,7 +1619,7 @@ class _InteractionDemoPageState extends State<InteractionDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final favColor = _favorite ? AppColors.warn : AppColors.primary;
+    final favColor = _favorite ? AppColors.success : AppColors.primary;
 
     return DemoScaffold(
       body: ScrollPage([
@@ -1116,14 +1633,18 @@ class _InteractionDemoPageState extends State<InteractionDemoPage> {
           padding: const EdgeInsets.all(16),
           onTap: () {
             setState(() => _favorite = !_favorite);
-            showMsg(context, _favorite ? 'Course ditandai favorite' : 'Favorite dibatalkan');
+            showMsg(context,
+                _favorite ? 'Course ditandai favorite' : 'Favorite dibatalkan',
+                color: _favorite ? AppColors.success : AppColors.primary);
           },
           child: Row(children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _favorite ? AppColors.warn.withValues(alpha: 0.2) : AppColors.primarySoft,
+                color: _favorite
+                    ? AppColors.success.withValues(alpha: 0.2)
+                    : AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.book_outlined, color: favColor),
@@ -1134,12 +1655,15 @@ class _InteractionDemoPageState extends State<InteractionDemoPage> {
                 const Text('Responsive Layout',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 4),
-                Text(_favorite ? 'Ditandai sebagai favorite' : 'Tap untuk menandai favorite',
+                Text(
+                    _favorite
+                        ? 'Ditandai sebagai favorite'
+                        : 'Tap untuk menandai favorite',
                     style: const TextStyle(fontSize: 12, color: Colors.black54)),
               ]),
             ),
             Icon(_favorite ? Icons.star : Icons.star_border,
-                color: _favorite ? AppColors.warn : AppColors.muted, size: 26),
+                color: _favorite ? AppColors.success : AppColors.muted, size: 26),
           ]),
         ),
         const SizedBox(height: 24),
@@ -1227,7 +1751,7 @@ class _InteractionDemoPageState extends State<InteractionDemoPage> {
   }
 }
 
-// ===== TAHAP 13: FORM & VALIDASI =====
+// ===== TAHAP 13 =====
 
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});
@@ -1238,13 +1762,12 @@ class FeedbackFormPage extends StatefulWidget {
 
 class _FeedbackFormPageState extends State<FeedbackFormPage> {
   final _formKey = GlobalKey<FormState>();
-  // Nama & NIM terisi default dari konstanta identitas.
   final _name = TextEditingController(text: studentName);
   final _nim = TextEditingController(text: studentId);
   final _comment = TextEditingController();
 
   bool _autoValidate = false;
-  ({String name, String nim, String comment})? _sent; // null = belum terkirim
+  ({String name, String nim, String comment})? _sent;
 
   @override
   void dispose() {
@@ -1271,17 +1794,18 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
     final ok = _formKey.currentState!.validate();
     setState(() {
       _autoValidate = true;
-      // Preview hanya muncul bila SEMUA field valid.
       _sent = ok
           ? (name: _name.text.trim(), nim: _nim.text.trim(), comment: _comment.text.trim())
           : null;
     });
     if (ok) {
       FocusScope.of(context).unfocus();
-      showMsg(context, 'Terima kasih, ${_name.text.trim()}! Feedback Anda sudah terkirim.',
+      showMsg(context,
+          'Terima kasih, ${_name.text.trim()}! Feedback Anda sudah terkirim.',
           color: AppColors.success);
     } else {
-      showMsg(context, 'Mohon periksa kembali field yang bertanda merah.', color: Colors.red);
+      showMsg(context, 'Mohon periksa kembali field yang bertanda merah.',
+          color: Colors.red);
     }
   }
 
@@ -1351,10 +1875,13 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
                 child: Column(children: [
                   _field(_name, 'Nama Lengkap', Icons.person_outline, _vName),
                   const SizedBox(height: 12),
-                  _field(_nim, 'NIM', Icons.badge_outlined, _vNim, type: TextInputType.number),
+                  _field(_nim, 'NIM', Icons.badge_outlined, _vNim,
+                      type: TextInputType.number),
                   const SizedBox(height: 12),
                   _field(_comment, 'Komentar', Icons.description_outlined, _vComment,
-                      lines: 4, hintText: 'Tulis feedback Anda (min. 5 karakter)', last: true),
+                      lines: 4,
+                      hintText: 'Tulis feedback Anda (min. 5 karakter)',
+                      last: true),
                 ]),
               ),
               const SizedBox(height: 12),
@@ -1402,14 +1929,15 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
           const SizedBox(height: 16),
           AppCard(
             borderColor: AppColors.primary.withValues(alpha: 0.3),
-            child: hint('Form + GlobalKey<FormState> memvalidasi semua field sekaligus '
+            child: hint(
+                'Form + GlobalKey<FormState> memvalidasi semua field sekaligus '
                 'lewat _formKey.currentState!.validate(). Tiap TextFormField punya validator sendiri.'),
           ),
         ]),
       );
 }
 
-// ===== TAHAP 14: SNACKBAR, DIALOG, LOADING =====
+// ===== TAHAP 14 =====
 
 class FeedbackDemoPage extends StatefulWidget {
   const FeedbackDemoPage({super.key});
@@ -1423,16 +1951,13 @@ class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
 
   void _snack() {
     setState(() => _last = 'SnackBar ditampilkan');
-    showMsg(
-      context,
-      'Data berhasil disimpan.',
-      color: AppColors.success,
-      action: SnackBarAction(
-        label: 'Lihat',
-        textColor: Colors.white,
-        onPressed: () => showMsg(context, 'Aksi "Lihat" dipilih.'),
-      ),
-    );
+    showMsg(context, 'Data berhasil disimpan.',
+        color: AppColors.success,
+        action: SnackBarAction(
+          label: 'Lihat',
+          textColor: Colors.white,
+          onPressed: () => showMsg(context, 'Aksi "Lihat" dipilih.'),
+        ));
   }
 
   Future<void> _confirm() async {
@@ -1443,7 +1968,8 @@ class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
         content: const Text(
             'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak bisa dibatalkan.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
@@ -1465,8 +1991,6 @@ class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      // PopScope: tombol back tidak menutup dialog lebih awal (kalau tidak,
-      // pop() di bawah akan ikut menutup halaman ini).
       builder: (_) => const PopScope(
         canPop: false,
         child: Center(
@@ -1553,11 +2077,11 @@ class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
           const SizedBox(height: 8),
           ruleCard(const [
             RuleRow(Icons.notifications_active, AppColors.success, 'SnackBar',
-                'Feedback singkat, tidak memblokir. Contoh: "Data tersimpan", "Berhasil login".'),
+                'Feedback singkat, tidak memblokir. Contoh: "Data tersimpan".'),
             RuleRow(Icons.help_outline, AppColors.warn, 'AlertDialog',
-                'Konfirmasi/perhatian, memblokir sampai user respon. Contoh: "Yakin hapus?".'),
+                'Konfirmasi/perhatian, memblokir sampai user respon.'),
             RuleRow(Icons.hourglass_top, AppColors.primary, 'Loading Indicator',
-                'Operasi yang butuh waktu. Contoh: "Memuat data...", "Mengirim...".'),
+                'Operasi yang butuh waktu. Contoh: "Memuat data...".'),
           ]),
         ]),
       );
@@ -1574,7 +2098,11 @@ class MyApp extends StatelessWidget {
         title: appTitle,
         theme: ThemeData(
           scaffoldBackgroundColor: AppColors.bg,
-          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            primary: AppColors.primary,
+            secondary: AppColors.success,
+          ),
         ),
         home: const MainShellPage(),
       );

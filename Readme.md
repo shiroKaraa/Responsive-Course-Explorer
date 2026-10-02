@@ -65,3 +65,113 @@ Pada tahap ini saya mencoba membuat beberapa jenis feedback untuk pengguna, yait
 Tahap 14.5 (DEBUG) : Refactoring + Perbaikan BUG
 
 Sebelum Tahap 15, Pada tahap 14.5 (DEBUG) saya melakukan refactoring main.dart untuk menyiapkan shared state favorite (via ValueNotifier<Set<String>>), memperbaiki ripple InkWell yang tertutup warna putih di dalam AppCard (via Material(type: MaterialType.transparency)), dan menjaga state tab saat layout berubah compact↔expanded (satu Scaffold + ValueKey('content')). Saya juga menambahkan PopScope(canPop: false) pada dialog loading agar tombol back Android tidak menutupnya lebih awal. Duplikasi seperti header identitas, kartu, style button, dan baris info digabung menjadi helper (go, showMsg, filled, outlined, ScrollPage, InfoRow, RuleRow, ruleCard). Hasilnya main.dart menyusut dari ~2500 menjadi ~1650 baris, dan fondasi untuk Tahap 15 (Mini Project Integrasi) sudah siap.
+
+Tahap 15: Mini Project
+
+Pada Tahap 15 saya menyelesaikan Mini Project Integrasi berupa aplikasi Responsive Course Explorer yang menggabungkan konsep dari Tahap 1–14. Aplikasi memiliki 3 tab utama, yaitu Home, Courses, dan Profile. Navigasinya dibuat responsif, menggunakan NavigationBar pada layar kecil dan NavigationRail pada layar lebar.
+
+Pada tab Home terdapat IdentityCard, Mini Quiz, daftar Favorite, dan menu untuk mengakses Tahap 1–14. Pada tab Courses saya menambahkan filter berdasarkan status course dan Favorite. Saya juga menambahkan fitur long-press pada course untuk menghapus Favorite melalui dialog konfirmasi.
+
+Pada halaman detail course terdapat informasi course, progress berdasarkan status, tombol untuk menyalin kode course, dan fitur tambah atau hapus Favorite. Sedangkan pada Profile terdapat informasi mahasiswa, statistik, About Me, About Application, dan daftar Favorite.
+
+Untuk state yang digunakan bersama beberapa bagian aplikasi, saya menggunakan ValueNotifier seperti favorites, quizScore, dan courseFilter. Dengan cara ini, perubahan data Favorite, nilai Quiz, dan filter dapat langsung diperbarui pada bagian aplikasi yang membutuhkan. Warna utama aplikasi tetap menggunakan biru dengan aksen hijau. Seluruh fitur dari Tahap 1–14 juga masih dapat diakses melalui menu di Home, dan project tetap menggunakan package yang sama tanpa menambahkan package baru.
+
+Struktur Aplikasi Responsive Course Explorer
+
+Responsive Course Explorer
+│
+├── MaterialApp
+│   └── MainShellPage
+│       ├── LayoutBuilder
+│       │   ├── Layar kecil/sedang
+│       │   │   ├── NavigationBar
+│       │   │   └── IndexedStack
+│       │   │
+│       │   └── Layar lebar
+│       │       ├── NavigationRail
+│       │       └── IndexedStack
+│       │
+│       └── Menu:
+│           ├── Home
+│           ├── Courses
+│           └── Profile
+│
+├── Home
+│   ├── Identitas Mahasiswa
+│   ├── Mini Quiz
+│   ├── Daftar Course Favorite
+│   └── Menu Tahap 1–14
+│
+├── Courses
+│   ├── Identitas Mahasiswa
+│   ├── Filter Course
+│   │   ├── Semua
+│   │   ├── Selesai
+│   │   ├── Berjalan
+│   │   ├── Belum
+│   │   └── Favorite
+│   │
+│   └── Grid Course
+│       ├── 1 kolom → layar kecil
+│       ├── 2 kolom → layar sedang
+│       └── 3 kolom → layar lebar
+│           │
+│           └── CourseCard
+│               ├── Tap → Detail Course
+│               └── Long Press → Favorite
+│
+├── Profile
+│   ├── Identitas Mahasiswa
+│   ├── Statistik
+│   ├── Informasi Mahasiswa
+│   ├── About Me
+│   ├── About Application
+│   └── Daftar Favorite
+│
+└── Halaman Detail
+    ├── CourseDetailPage
+    │   ├── Informasi Course
+    │   ├── Progress
+    │   ├── Deskripsi
+    │   ├── Identitas Mahasiswa
+    │   ├── Salin Kode Course
+    │   └── Tambah/Hapus Favorite
+    │
+    └── DetailPage
+        ├── Identitas Mahasiswa
+        └── Tombol Kembali
+```
+
+Struktur Direktori Project
+
+responsive_course_explorer/
+│
+├── lib/
+│   ├── main.dart                     ← file utama (semua kode Tahap 1–15)
+│   └── quiz_data.dart                ← data soal Mini Quiz (terpisah)
+│
+├── assets/
+│   ├── data/
+│   │   └── student_data.json         ← data mahasiswa + courses (dari Worksheet Pertemuan 4)
+│   └── images/
+│       └── profile.jpg               ← foto profil mahasiswa
+│
+├── android/                          ← folder bawaan Flutter
+├── ios/
+├── web/
+├── linux/
+├── macos/
+├── windows/
+│
+├── test/                             ← (opsional) unit test
+├── pubspec.yaml                      ← konfigurasi dependency + asset
+├── pubspec.lock
+├── analysis_options.yaml
+├── .gitignore
+└── README.md
+
+Data Mini Quiz. Pada tahap ini saya tetap menggunakan 20 soal lama yang membahas materi umum Flutter dan Dart. Kemudian saya menambahkan 22 soal baru yang disesuaikan dengan materi Worksheet Pertemuan 5.
+
+Soal tambahan tersebut terdiri dari 10 soal tentang Responsive Layout, 5 soal tentang Navigation, dan 7 soal tentang User Interaction. Materinya mencakup MediaQuery, LayoutBuilder, breakpoint, Expanded, Flexible, Wrap, SingleChildScrollView, Navigator.push/pop, NavigationBar, NavigationRail, InkWell, GestureDetector, validasi form, SnackBar, AlertDialog, dan CircularProgressIndicator.
+
+Dengan penambahan tersebut, jumlah soal Mini Quiz menjadi 42 soal. Format data tetap menggunakan {q, options, answer} agar masih sesuai dengan struktur yang dibaca oleh MiniQuizCard.

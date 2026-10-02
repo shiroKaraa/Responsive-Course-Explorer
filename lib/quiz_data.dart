@@ -1,4 +1,4 @@
-// ===== DATA MINI QUIZ (Sementara Tidak Digunakan Sampai Tahap 15) =====
+// ===== DATA MINI QUIZ =====
 
 const List<Map<String, dynamic>> quizQuestions = [
   {
@@ -100,5 +100,126 @@ const List<Map<String, dynamic>> quizQuestions = [
     'q': 'Format data yang digunakan pada student_data.json?',
     'options': ['XML', 'JSON', 'CSV'],
     'answer': 'JSON',
+  },
+
+  {
+    'q': 'Widget yang membaca ukuran layar, orientasi, dan padding sistem secara global?',
+    'options': ['MediaQuery', 'LayoutBuilder', 'Container'],
+    'answer': 'MediaQuery',
+  },
+  {
+    'q': 'Widget yang membaca constraints dari parent untuk menentukan layout lokal?',
+    'options': ['MediaQuery', 'LayoutBuilder', 'InheritedWidget'],
+    'answer': 'LayoutBuilder',
+  },
+  {
+    'q': 'Berapa breakpoint "compact" pada worksheet Pertemuan 5?',
+    'options': ['Lebar < 600 px', 'Lebar < 720 px', 'Lebar < 840 px'],
+    'answer': 'Lebar < 600 px',
+  },
+  {
+    'q': 'Berapa breakpoint "medium" pada worksheet Pertemuan 5?',
+    'options': ['400 – 599 px', '600 – 839 px', '840 – 1024 px'],
+    'answer': '600 – 839 px',
+  },
+  {
+    'q': 'Berapa breakpoint "expanded" pada worksheet Pertemuan 5?',
+    'options': ['≥ 600 px', '≥ 720 px', '≥ 840 px'],
+    'answer': '≥ 840 px',
+  },
+  {
+    'q': 'Widget yang mengisi sisa ruang di dalam Row atau Column secara proporsional?',
+    'options': ['Expanded', 'Padding', 'Align'],
+    'answer': 'Expanded',
+  },
+  {
+    'q': 'Widget yang memberi ruang lebih longgar tetapi tidak selalu memenuhi sisa ruang?',
+    'options': ['Flexible', 'Expanded', 'SizedBox'],
+    'answer': 'Flexible',
+  },
+  {
+    'q': 'Widget yang memindahkan child ke baris berikutnya ketika ruang tidak cukup?',
+    'options': ['Row', 'Wrap', 'Stack'],
+    'answer': 'Wrap',
+  },
+  {
+    'q': 'Error yang muncul ketika child meminta ruang lebih besar dari constraints parent?',
+    'options': ['RenderFlex overflowed', 'NullPointerException', 'FormatException'],
+    'answer': 'RenderFlex overflowed',
+  },
+  {
+    'q': 'Widget scroll yang cocok untuk konten statis yang lebih tinggi dari layar?',
+    'options': ['ListView', 'SingleChildScrollView', 'PageView'],
+    'answer': 'SingleChildScrollView',
+  },
+
+  {
+    'q': 'Method untuk membuka halaman baru dengan menambahkan route di atas stack?',
+    'options': ['Navigator.push()', 'Navigator.pop()', 'Navigator.replace()'],
+    'answer': 'Navigator.push()',
+  },
+  {
+    'q': 'Method untuk kembali ke halaman sebelumnya dengan menghapus route teratas?',
+    'options': ['Navigator.push()', 'Navigator.pop()', 'Navigator.remove()'],
+    'answer': 'Navigator.pop()',
+  },
+  {
+    'q': 'Cara mengirim data hasil dari halaman detail ke halaman sebelumnya?',
+    'options': [
+      'Navigator.pop(context, result)',
+      'Navigator.push(context, result)',
+      'Navigator.setResult(result)',
+    ],
+    'answer': 'Navigator.pop(context, result)',
+  },
+  {
+    'q': 'Widget navigasi utama yang cocok untuk layar compact/medium?',
+    'options': ['NavigationRail', 'NavigationBar', 'Drawer'],
+    'answer': 'NavigationBar',
+  },
+  {
+    'q': 'Widget navigasi utama yang cocok untuk layar expanded (≥ 840 px)?',
+    'options': ['NavigationRail', 'NavigationBar', 'BottomNavigationBar'],
+    'answer': 'NavigationRail',
+  },
+
+  {
+    'q': 'Widget yang memberi efek ripple Material saat ditekan?',
+    'options': ['GestureDetector', 'InkWell', 'Listener'],
+    'answer': 'InkWell',
+  },
+  {
+    'q': 'Widget yang mendeteksi gesture umum (tap, long press, drag) tanpa ripple Material?',
+    'options': ['InkWell', 'GestureDetector', 'ElevatedButton'],
+    'answer': 'GestureDetector',
+  },
+  {
+    'q': 'Widget yang digunakan untuk membungkus form dan memvalidasi semua field sekaligus?',
+    'options': ['Form', 'TextField', 'Validator'],
+    'answer': 'Form',
+  },
+  {
+    'q': 'Cara memicu validasi semua field pada Form?',
+    'options': [
+      '_formKey.currentState!.validate()',
+      '_formKey.validateAll()',
+      'Form.of(context).check()',
+    ],
+    'answer': '_formKey.currentState!.validate()',
+  },
+  {
+    'q': 'Feedback singkat yang muncul di bawah layar dan tidak memblokir UI?',
+    'options': ['SnackBar', 'AlertDialog', 'Tooltip'],
+    'answer': 'SnackBar',
+  },
+  {
+    'q': 'Feedback yang memblokir UI sampai user memilih aksi?',
+    'options': ['SnackBar', 'AlertDialog', 'Banner'],
+    'answer': 'AlertDialog',
+  },
+  {
+    'q': 'Widget yang menampilkan indikator loading berputar?',
+    'options': ['CircularProgressIndicator', 'LinearProgressIndicator', 'LoadingSpinner'],
+    'answer': 'CircularProgressIndicator',
   },
 ];
