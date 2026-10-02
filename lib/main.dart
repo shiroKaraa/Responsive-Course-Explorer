@@ -270,6 +270,7 @@ class _HomeTabPage extends StatelessWidget {
       ('Tahap 8 & 9', 'Course Detail & Favorite', Icons.star_outline, const CourseGridPage(standalone: true)),
       ('Tahap 12', 'Interaction Demo', Icons.touch_app, const InteractionDemoPage()),
       ('Tahap 13', 'Form & Validation', Icons.edit_note, const FeedbackFormPage()),
+      ('Tahap 14', 'Feedback Demo', Icons.notifications_active, const FeedbackDemoPage()),
     ];
 
     return ListView(
@@ -486,7 +487,337 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 13: FORM & VALIDATION =====
+class FeedbackDemoPage extends StatefulWidget {
+  const FeedbackDemoPage({super.key});
+
+  @override
+  State<FeedbackDemoPage> createState() => _FeedbackDemoPageState();
+}
+
+class _FeedbackDemoPageState extends State<FeedbackDemoPage> {
+  String _lastAction = '-';
+
+  void _showSnackBar() {
+    setState(() => _lastAction = 'SnackBar ditampilkan');
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text('Data berhasil disimpan.'),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Lihat',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Aksi "Lihat" dipilih.'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showConfirmDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus data ini? '
+          'Tindakan ini tidak bisa dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _lastAction = (confirmed == true)
+          ? 'Data dihapus (dikonfirmasi)'
+          : 'Penghapusan dibatalkan';
+    });
+
+    if (confirmed == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data berhasil dihapus.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Penghapusan dibatalkan.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showLoading() async {
+    setState(() => _lastAction = 'Loading...');
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: AppCard(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Memuat data...',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Mohon tunggu sebentar',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (!mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pop();
+
+    setState(() => _lastAction = 'Data berhasil dimuat');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Data berhasil dimuat.'),
+        backgroundColor: AppColors.success,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DemoScaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const IdentityCard(),
+            const SizedBox(height: 16),
+
+            sectionTitle('Umpan Balik ke Pengguna'),
+            const SizedBox(height: 4),
+            hint(
+              'SnackBar untuk feedback singkat, AlertDialog untuk konfirmasi, '
+              'dan CircularProgressIndicator untuk loading.',
+            ),
+            const SizedBox(height: 12),
+
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _showSnackBar,
+                    icon: const Icon(Icons.save, size: 18),
+                    label: const Text('Simpan Data (SnackBar)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _showConfirmDialog,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Hapus Data (Dialog)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: _showLoading,
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Muat Data (Loading)'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              borderColor: AppColors.primary.withValues(alpha: 0.3),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Aksi terakhir:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _lastAction,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            sectionTitle('Kapan Pakai Apa?'),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _FeedbackRuleRow(
+                    icon: Icons.notifications_active,
+                    color: AppColors.success,
+                    title: 'SnackBar',
+                    desc: 'Feedback singkat, tidak memblokir. '
+                        'Contoh: "Data tersimpan", "Berhasil login".',
+                  ),
+                  Divider(height: 20),
+                  _FeedbackRuleRow(
+                    icon: Icons.help_outline,
+                    color: AppColors.warn,
+                    title: 'AlertDialog',
+                    desc: 'Konfirmasi/perhatian, memblokir sampai user respon. '
+                        'Contoh: "Yakin hapus?", "Keluar aplikasi?".',
+                  ),
+                  Divider(height: 20),
+                  _FeedbackRuleRow(
+                    icon: Icons.hourglass_top,
+                    color: AppColors.primary,
+                    title: 'Loading Indicator',
+                    desc: 'Operasi yang butuh waktu. '
+                        'Contoh: "Memuat data...", "Mengirim...".',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackRuleRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title, desc;
+  const _FeedbackRuleRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.desc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.black54,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});
@@ -773,8 +1104,6 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
     );
   }
 }
-
-// ===== TAHAP 12: INTERACTION DEMO =====
 
 class InteractionDemoPage extends StatefulWidget {
   const InteractionDemoPage({super.key});
@@ -1088,8 +1417,6 @@ class _RuleRow extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 7: DETAIL PAGE =====
 
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
