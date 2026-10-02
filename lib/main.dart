@@ -142,6 +142,8 @@ class StatusHelper {
   }
 }
 
+// ===== HOME (MENU TAHAP + NAVIGASI) =====
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -154,6 +156,7 @@ class HomePage extends StatelessWidget {
       ('Tahap 4', 'Expanded, Flexible, Wrap', Icons.view_column, const FlexDemoPage()),
       ('Tahap 5', 'GridView Responsif', Icons.grid_view, const CourseGridPage()),
       ('Tahap 6', 'Scroll & Keyboard (Form)', Icons.person_outline, const ProfileFormPage()),
+      ('Tahap 8', 'Course Detail (Passing Data)', Icons.article_outlined, const CourseGridPage()),
     ];
 
     return DemoScaffold(
@@ -206,6 +209,8 @@ class HomePage extends StatelessWidget {
   }
 }
 
+// ===== TAHAP 7: DETAIL PAGE =====
+
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key});
 
@@ -245,8 +250,7 @@ class DetailPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   hint(
                     'Anda berada di DetailPage. Halaman ini ditambahkan ke '
-                    'navigation stack di atas HomePage. Untuk kembali, '
-                    'gunakan tombol back bawaan AppBar atau tombol di bawah.',
+                    'navigation stack di atas HomePage.',
                   ),
                   const SizedBox(height: 16),
                   const Divider(),
@@ -273,9 +277,7 @@ class DetailPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back, size: 18),
                       label: const Text('Kembali'),
                       style: ElevatedButton.styleFrom(
@@ -316,12 +318,10 @@ class DetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   hint(
-                    '1. AppBar otomatis memiliki tombol back (←) karena '
-                    'halaman ini di-push di atas HomePage.\n'
-                    '2. Tombol "Kembali" di bawah juga memanggil '
-                    'Navigator.pop(context) secara eksplisit.\n'
-                    '3. Keduanya menghasilkan efek yang sama: menghapus '
-                    'DetailPage dari navigation stack.',
+                    '1. AppBar otomatis memiliki tombol back (←).\n'
+                    '2. Tombol "Kembali" memanggil Navigator.pop(context) '
+                    'secara eksplisit.\n'
+                    '3. Keduanya menghapus DetailPage dari stack.',
                   ),
                 ],
               ),
@@ -334,6 +334,155 @@ class DetailPage extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 8: COURSE DETAIL PAGE =====
+
+class CourseDetailPage extends StatelessWidget {
+  final Map<String, dynamic> course;
+  const CourseDetailPage({super.key, required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = (course['status'] as String?) ?? 'planned';
+    final color = StatusHelper.color(status);
+    final title = (course['title'] as String?) ?? 'Tanpa Judul';
+    final code = (course['code'] as String?) ?? '-';
+    final credits = course['credits']?.toString() ?? '-';
+    final description = (course['description'] as String?) ?? 'Tidak ada deskripsi.';
+    final dosen = (course['dosen'] as String?) ?? '-';
+
+    return DemoScaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              borderColor: color.withValues(alpha: 0.4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(StatusHelper.icon(status), color: color, size: 28),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text(
+                        '$code • $credits SKS',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const Spacer(),
+                      StatusHelper.badge(status),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            sectionTitle('Deskripsi'),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            sectionTitle('Informasi Course'),
+            const SizedBox(height: 8),
+            AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  _infoRow(Icons.tag, 'Kode', code),
+                  const Divider(height: 20),
+                  _infoRow(Icons.credit_card, 'SKS', '$credits SKS'),
+                  const Divider(height: 20),
+                  _infoRow(Icons.person, 'Dosen', dosen),
+                  const Divider(height: 20),
+                  _infoRow(Icons.info_outline, 'Status',
+                      StatusHelper._of(status).$3),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            sectionTitle('Identitas Mahasiswa'),
+            const SizedBox(height: 8),
+            const IdentityCard(),
+
+            const SizedBox(height: 16),
+            AppCard(
+              borderColor: AppColors.primary.withValues(alpha: 0.3),
+              child: hint(
+                'Halaman ini menerima data course melalui constructor: '
+                'CourseDetailPage(course: courses[index]). '
+                'Semua informasi di atas berasal dari Map course tersebut.',
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.black54,
+          ),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ===== TAHAP 1: HARD-CODED vs FLEKSIBEL =====
 
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
@@ -378,6 +527,8 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
     );
   }
 }
+
+// ===== TAHAP 2: MEDIAQUERY =====
 
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
@@ -435,6 +586,8 @@ class MediaQueryPage extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 3: LAYOUTBUILDER & BREAKPOINT =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -505,6 +658,8 @@ class BreakpointDemoPage extends StatelessWidget {
         }),
       );
 }
+
+// ===== TAHAP 4: EXPANDED, FLEXIBLE, WRAP =====
 
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
@@ -596,6 +751,8 @@ class FlexDemoPage extends StatelessWidget {
   }
 }
 
+// ===== TAHAP 5: GRIDVIEW RESPONSIF =====
+
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
 class CourseGridPage extends StatefulWidget {
@@ -646,7 +803,7 @@ class _CourseGridPageState extends State<CourseGridPage> {
                       mainAxisExtent: 170,
                     ),
                     itemCount: courses.length,
-                    itemBuilder: (_, i) => CourseCard(course: courses[i]),
+                    itemBuilder: (_, i) => _TappableCourseCard(course: courses[i]),
                   ),
                 ),
               ]),
@@ -654,6 +811,27 @@ class _CourseGridPageState extends State<CourseGridPage> {
           },
         ),
       );
+}
+
+class _TappableCourseCard extends StatelessWidget {
+  final Map<String, dynamic> course;
+  const _TappableCourseCard({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CourseDetailPage(course: course),
+          ),
+        );
+      },
+      child: CourseCard(course: course),
+    );
+  }
 }
 
 class CourseCard extends StatelessWidget {
@@ -704,6 +882,8 @@ class CourseCard extends StatelessWidget {
     );
   }
 }
+
+// ===== TAHAP 6: SCROLLABLE CONTENT & KEYBOARD =====
 
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});
@@ -798,6 +978,8 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
     );
   }
 }
+
+// ===== APP =====
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

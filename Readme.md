@@ -33,3 +33,7 @@ Sebelum masuk Tahap 7, saya melakukan refactoring pada main.dart untuk merapikan
 Tahap 7 : Navigator.push() dan Navigator.pop()
 
 Pada tahap ini saya mencoba membuat perpindahan halaman dari HomePage ke DetailPage menggunakan Navigator.push(). Setelah masuk ke DetailPage, tombol back pada AppBar otomatis muncul karena halaman tersebut berada di atas HomePage. Saya juga mencoba tombol "Kembali" menggunakan Navigator.pop(), dan hasilnya sama-sama kembali ke halaman sebelumnya. Dari percobaan ini saya lebih memahami bahwa navigasi Flutter bekerja seperti stack, yaitu push untuk menambahkan halaman dan pop untuk kembali atau menghapus halaman teratas.
+
+Tahap 8 : Passing Data dari List ke Detail Page
+
+Pada tahap ini saya mencoba membuat halaman detail course yang datanya dikirim dari halaman daftar course. Saat salah satu kartu ditekan, data course dikirim melalui constructor ke CourseDetailPage. Hasilnya, satu halaman detail bisa digunakan untuk semua course tanpa perlu membuat halaman baru untuk setiap course. Saya juga menggunakan InkWell agar kartu bisa ditekan dan memberikan efek ripple. Dari percobaan ini saya memahami bahwa data dapat dikirim antar halaman melalui constructor dan membuat kode menjadi lebih sederhana karena halaman detail dapat digunakan kembali.
