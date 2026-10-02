@@ -29,3 +29,7 @@ Pada tahap ini saya mencoba membuat form profil dengan beberapa TextField. Saat 
 Tahap 6.5 (DEBUG) : Refactoring/Penyederhanaan Kode dan Perbaikan Beberapa BUG
 
 Sebelum masuk Tahap 7, saya melakukan refactoring pada main.dart untuk merapikan kode dan memperbaiki beberapa bug: (1) home: diubah dari ProfileFormPage ke HomePage agar menu Tahap 1–6 dapat diakses; (2) childAspectRatio pada GridView diganti mainAxisExtent agar tidak overflow; (3) teks hint di Tahap 4 bagian C disesuaikan. Duplikasi seperti header identitas, AppBar, kartu course, dan layout breakpoint digabung menjadi widget reusable. DashboardPage dan GreetingCard dinonaktifkan sementara karena tidak dipakai di tahap 1–6. Sedangkan MiniQuizCard dan quiz_data.dart sengaja dinonaktifkan sementara dan akan digunakan kembali pada Tahap 15 (Mini Project Integrasi). Hasilnya, file main.dart menyusut dari ~1.800 baris menjadi ~680 baris dengan struktur yang lebih bersih.
+
+Tahap 7 : Navigator.push() dan Navigator.pop()
+
+Pada tahap ini saya mencoba membuat perpindahan halaman dari HomePage ke DetailPage menggunakan Navigator.push(). Setelah masuk ke DetailPage, tombol back pada AppBar otomatis muncul karena halaman tersebut berada di atas HomePage. Saya juga mencoba tombol "Kembali" menggunakan Navigator.pop(), dan hasilnya sama-sama kembali ke halaman sebelumnya. Dari percobaan ini saya lebih memahami bahwa navigasi Flutter bekerja seperti stack, yaitu push untuk menambahkan halaman dan pop untuk kembali atau menghapus halaman teratas.

@@ -54,7 +54,6 @@ Widget sectionTitle(String t) => Text(t,
 Widget hint(String t) =>
     Text(t, style: const TextStyle(fontSize: 12, color: Colors.black54));
 
-/// Scaffold + AppBar standar untuk semua halaman worksheet.
 class DemoScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget>? actions;
@@ -73,7 +72,6 @@ class DemoScaffold extends StatelessWidget {
       );
 }
 
-/// Kartu identitas (Nama + NIM) yang dipakai di banyak halaman.
 class IdentityCard extends StatelessWidget {
   final String name, nim;
   final String? subtitle;
@@ -144,8 +142,6 @@ class StatusHelper {
   }
 }
 
-// ===== HOME (MENU TAHAP) =====
-
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -166,6 +162,30 @@ class HomePage extends StatelessWidget {
         children: [
           const IdentityCard(),
           const SizedBox(height: 16),
+
+          AppCard(
+            padding: EdgeInsets.zero,
+            borderColor: AppColors.primary.withValues(alpha: 0.4),
+            child: ListTile(
+              leading: const Icon(Icons.open_in_new, color: AppColors.primary),
+              title: const Text(
+                'Tahap 7: Buka Detail Page',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Navigator.push() dan Navigator.pop()'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DetailPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          sectionTitle('Menu Tahapan'),
+          const SizedBox(height: 8),
+
           for (final m in menu)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -186,7 +206,134 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 1: HARD-CODED vs FLEKSIBEL =====
+class DetailPage extends StatelessWidget {
+  const DetailPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DemoScaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const IdentityCard(),
+
+            const SizedBox(height: 16),
+            sectionTitle('Detail Page'),
+            const SizedBox(height: 8),
+
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Halaman ini dibuka dengan Navigator.push()',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  hint(
+                    'Anda berada di DetailPage. Halaman ini ditambahkan ke '
+                    'navigation stack di atas HomePage. Untuk kembali, '
+                    'gunakan tombol back bawaan AppBar atau tombol di bawah.',
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+
+                  Text(
+                    studentName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'NIM: $studentId',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Kembali'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            AppCard(
+              borderColor: AppColors.success.withValues(alpha: 0.3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.lightbulb_outline,
+                          color: AppColors.success, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Yang perlu diamati',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  hint(
+                    '1. AppBar otomatis memiliki tombol back (←) karena '
+                    'halaman ini di-push di atas HomePage.\n'
+                    '2. Tombol "Kembali" di bawah juga memanggil '
+                    'Navigator.pop(context) secara eksplisit.\n'
+                    '3. Keduanya menghasilkan efek yang sama: menghapus '
+                    'DetailPage dari navigation stack.',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class HardcodedDemoPage extends StatefulWidget {
   const HardcodedDemoPage({super.key});
@@ -225,15 +372,12 @@ class _HardcodedDemoPageState extends State<HardcodedDemoPage> {
               ? 'Width tetap 500: overflow di layar kecil (garis kuning-hitam).'
               : 'double.infinity: mengikuti ruang yang tersedia.'),
           const SizedBox(height: 12),
-          // Row memberi lebar tak terbatas ke child, sehingga overflow terlihat
           Row(children: [_fixed ? box : Expanded(child: box)]),
         ]),
       ),
     );
   }
 }
-
-// ===== TAHAP 2: MEDIAQUERY =====
 
 class MediaQueryPage extends StatelessWidget {
   const MediaQueryPage({super.key});
@@ -291,8 +435,6 @@ class MediaQueryPage extends StatelessWidget {
     );
   }
 }
-
-// ===== TAHAP 3: LAYOUTBUILDER & BREAKPOINT =====
 
 class _LayoutCard extends StatelessWidget {
   final String title, range;
@@ -363,8 +505,6 @@ class BreakpointDemoPage extends StatelessWidget {
         }),
       );
 }
-
-// ===== TAHAP 4: EXPANDED, FLEXIBLE, WRAP =====
 
 class FlexDemoPage extends StatelessWidget {
   const FlexDemoPage({super.key});
@@ -456,8 +596,6 @@ class FlexDemoPage extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 5: GRIDVIEW RESPONSIF =====
-
 int columnsFor(double width) => width < 600 ? 1 : (width < 840 ? 2 : 3);
 
 class CourseGridPage extends StatefulWidget {
@@ -505,7 +643,7 @@ class _CourseGridPageState extends State<CourseGridPage> {
                       crossAxisCount: columnsFor(c.maxWidth),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      mainAxisExtent: 170, // tinggi tetap -> tidak overflow
+                      mainAxisExtent: 170,
                     ),
                     itemCount: courses.length,
                     itemBuilder: (_, i) => CourseCard(course: courses[i]),
@@ -567,8 +705,6 @@ class CourseCard extends StatelessWidget {
   }
 }
 
-// ===== TAHAP 6: SCROLLABLE CONTENT & KEYBOARD =====
-
 class ProfileFormPage extends StatefulWidget {
   const ProfileFormPage({super.key});
 
@@ -579,7 +715,6 @@ class ProfileFormPage extends StatefulWidget {
 class _ProfileFormPageState extends State<ProfileFormPage> {
   bool _useScroll = true;
 
-  // label, nilai awal, icon, keyboard, maxLines
   static const _fields = <(String, String, IconData, TextInputType, int)>[
     ('Nama Lengkap', studentName, Icons.person_outline, TextInputType.text, 1),
     ('NIM', studentId, Icons.badge_outlined, TextInputType.number, 1),
@@ -663,8 +798,6 @@ class _ProfileFormPageState extends State<ProfileFormPage> {
     );
   }
 }
-
-// ===== APP =====
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
